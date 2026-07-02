@@ -10,8 +10,15 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@t3-oss/env-nuxt": "^0.13.11",
+    "@zenstackhq/orm": "^3.8.2",
+    "@zenstackhq/schema": "^3.8.2",
     "nuxt": "^4.4.8",
     "vue": "^3.5.38",
-    "vue-router": "^5.1.0"
+    "vue-router": "^5.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@zenstackhq/cli": "^3.8.2"
   }
 }
