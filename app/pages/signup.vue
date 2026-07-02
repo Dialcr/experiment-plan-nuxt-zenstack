@@ -9,6 +9,13 @@ import {
     Password,
 } from "frappe-ui";
 
+definePageMeta({
+    middleware: "guest",
+});
+
+const supabase = useSupabaseClient();
+const requestUrl = useRequestURL();
+
 const form = reactive({
     name: "",
     email: "",
@@ -19,7 +26,8 @@ const form = reactive({
 
 const submitted = ref(false);
 const loading = ref(false);
-const showSuccess = ref(false);
+const errorMessage = ref("");
+const successMessage = ref("");
 
 const errors = computed(() => {
     if (!submitted.value) return {} as Record<string, string>;
@@ -42,16 +50,45 @@ const errors = computed(() => {
 });
 
 const isValid = computed(() => Object.keys(errors.value).length === 0);
+const emailRedirectTo = computed(() => `${requestUrl.origin}/confirm`);
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Unable to create account.";
+}
 
 async function submit() {
     submitted.value = true;
-    showSuccess.value = false;
+    errorMessage.value = "";
+    successMessage.value = "";
     if (!isValid.value) return;
 
-    loading.value = true;
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    loading.value = false;
-    showSuccess.value = true;
+    try {
+        loading.value = true;
+        const { data, error } = await supabase.auth.signUp({
+            email: form.email,
+            password: form.password,
+            options: {
+                emailRedirectTo: emailRedirectTo.value,
+                data: {
+                    name: form.name.trim(),
+                },
+            },
+        });
+
+        if (error) throw error;
+
+        if (data.session) {
+            await navigateTo("/");
+            return;
+        }
+
+        successMessage.value =
+            "Account created. Check your email to confirm your signup.";
+    } catch (error) {
+        errorMessage.value = getErrorMessage(error);
+    } finally {
+        loading.value = false;
+    }
 }
 </script>
 
@@ -65,12 +102,23 @@ async function submit() {
             subtitle="Start a project workspace with a few basic account details."
         >
             <Alert
-                v-if="showSuccess"
-                v-model="showSuccess"
-                title="Signup form submitted"
-                description="This demo only validates the form locally. User creation can be wired to ZenStack next."
+                v-if="successMessage"
+                :model-value="true"
+                title="Check your email"
+                :description="successMessage"
                 theme="green"
                 class="mb-5"
+                @update:model-value="successMessage = ''"
+            />
+
+            <Alert
+                v-if="errorMessage"
+                :model-value="true"
+                title="Unable to create account"
+                :description="errorMessage"
+                theme="red"
+                class="mb-5"
+                @update:model-value="errorMessage = ''"
             />
 
             <form class="space-y-4" @submit.prevent="submit">
@@ -80,6 +128,7 @@ async function submit() {
                     label="Full name"
                     placeholder="Jane Doe"
                     :error="errors.name"
+                    autocomplete="name"
                     required
                 />
 
@@ -90,6 +139,7 @@ async function submit() {
                     description="We'll use this for login and account recovery."
                     placeholder="you@example.com"
                     :error="errors.email"
+                    autocomplete="email"
                     required
                 />
 
@@ -99,6 +149,7 @@ async function submit() {
                     description="At least 8 characters."
                     placeholder="Create a password"
                     :error="errors.password"
+                    autocomplete="new-password"
                     required
                 />
 
@@ -107,6 +158,7 @@ async function submit() {
                     label="Confirm password"
                     placeholder="Repeat your password"
                     :error="errors.confirmPassword"
+                    autocomplete="new-password"
                     required
                 />
 

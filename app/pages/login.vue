@@ -9,6 +9,13 @@ import {
     Password,
 } from "frappe-ui";
 
+definePageMeta({
+    middleware: "guest",
+});
+
+const supabase = useSupabaseClient();
+const redirectInfo = useSupabaseCookieRedirect();
+
 const form = reactive({
     email: "",
     password: "",
@@ -17,7 +24,7 @@ const form = reactive({
 
 const submitted = ref(false);
 const loading = ref(false);
-const showSuccess = ref(false);
+const errorMessage = ref("");
 
 const errors = computed(() => {
     if (!submitted.value) return {} as Record<string, string>;
@@ -33,15 +40,31 @@ const errors = computed(() => {
 
 const isValid = computed(() => Object.keys(errors.value).length === 0);
 
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Unable to log in.";
+}
+
 async function submit() {
     submitted.value = true;
-    showSuccess.value = false;
+    errorMessage.value = "";
     if (!isValid.value) return;
 
-    loading.value = true;
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    loading.value = false;
-    showSuccess.value = true;
+    try {
+        loading.value = true;
+        const { error } = await supabase.auth.signInWithPassword({
+            email: form.email,
+            password: form.password,
+        });
+
+        if (error) throw error;
+
+        const redirectPath = redirectInfo.pluck();
+        await navigateTo(redirectPath || "/");
+    } catch (error) {
+        errorMessage.value = getErrorMessage(error);
+    } finally {
+        loading.value = false;
+    }
 }
 </script>
 
@@ -55,12 +78,13 @@ async function submit() {
             subtitle="Welcome back. Enter your account details to continue."
         >
             <Alert
-                v-if="showSuccess"
-                v-model="showSuccess"
-                title="Login form submitted"
-                description="This demo only validates the form locally. Real auth can be wired in next."
-                theme="green"
+                v-if="errorMessage"
+                :model-value="true"
+                title="Unable to log in"
+                :description="errorMessage"
+                theme="red"
                 class="mb-5"
+                @update:model-value="errorMessage = ''"
             />
 
             <form class="space-y-4" @submit.prevent="submit">
@@ -70,6 +94,7 @@ async function submit() {
                     label="Email"
                     placeholder="you@example.com"
                     :error="errors.email"
+                    autocomplete="email"
                     required
                 />
 
@@ -78,6 +103,7 @@ async function submit() {
                     label="Password"
                     placeholder="Enter your password"
                     :error="errors.password"
+                    autocomplete="current-password"
                     required
                 />
 

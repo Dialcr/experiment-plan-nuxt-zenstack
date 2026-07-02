@@ -1,5 +1,25 @@
 <script setup lang="ts">
 import { Button, Card } from "frappe-ui";
+
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
+const loading = ref(false);
+const errorMessage = ref("");
+
+async function signOut() {
+    try {
+        loading.value = true;
+        errorMessage.value = "";
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        await navigateTo("/login");
+    } catch (error) {
+        errorMessage.value =
+            error instanceof Error ? error.message : "Unable to sign out.";
+    } finally {
+        loading.value = false;
+    }
+}
 </script>
 
 <template>
@@ -8,15 +28,21 @@ import { Button, Card } from "frappe-ui";
     >
         <Card
             class="w-full max-w-xl text-center"
-            title="Frappe UI auth form playground"
-            subtitle="Try a simple pair of login and signup pages built with Frappe UI components."
+            title="You're signed in"
+            :subtitle="user?.email ?? 'Supabase session is active.'"
         >
-            <div class="flex justify-center gap-2">
-                <Button route="/login">Log in</Button>
-                <Button route="/signup" variant="solid" theme="blue">
-                    Create account
-                </Button>
-            </div>
+            <p v-if="errorMessage" class="mb-4 text-p-sm text-ink-red-6">
+                {{ errorMessage }}
+            </p>
+            <Button
+                variant="solid"
+                theme="red"
+                :loading="loading"
+                loading-text="Signing out"
+                @click="signOut"
+            >
+                Sign out
+            </Button>
         </Card>
     </main>
 </template>

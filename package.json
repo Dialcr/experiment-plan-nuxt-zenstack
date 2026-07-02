@@ -21,6 +21,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@nuxtjs/supabase": "^2.0.9",
     "@types/pg": "^8.20.0",
     "@zenstackhq/cli": "^3.8.2",
     "autoprefixer": "^10.5.2",
