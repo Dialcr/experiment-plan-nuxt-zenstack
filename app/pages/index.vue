@@ -2,9 +2,11 @@
 import { Button, Card } from "frappe-ui";
 
 const supabase = useSupabaseClient();
-const user = useSupabaseUser();
 const loading = ref(false);
 const errorMessage = ref("");
+const { data: user, error: userError } = await useFetch("/api/me", {
+    headers: useRequestHeaders(["cookie"]),
+});
 
 async function signOut() {
     try {
@@ -29,9 +31,18 @@ async function signOut() {
         <Card
             class="w-full max-w-xl text-center"
             title="You're signed in"
-            :subtitle="user?.email ?? 'Supabase session is active.'"
+            :subtitle="user?.email ?? 'App user is active.'"
         >
-            <p v-if="errorMessage" class="mb-4 text-p-sm text-ink-red-6">
+            <p v-if="user?.name" class="mb-4 text-p text-ink-gray-8">
+                {{ user.name }}
+            </p>
+            <p
+                v-if="userError"
+                class="mb-4 text-p-sm text-ink-red-6"
+            >
+                {{ userError.statusMessage ?? "Unable to load app user." }}
+            </p>
+            <p v-else-if="errorMessage" class="mb-4 text-p-sm text-ink-red-6">
                 {{ errorMessage }}
             </p>
             <Button
