@@ -13,6 +13,7 @@
     "@t3-oss/env-nuxt": "^0.13.11",
     "@zenstackhq/orm": "^3.8.2",
     "@zenstackhq/schema": "^3.8.2",
+    "frappe-ui": "^0.1.278",
     "nuxt": "^4.4.8",
     "pg": "^8.22.0",
     "vue": "^3.5.38",
@@ -21,6 +22,9 @@
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
-    "@zenstackhq/cli": "^3.8.2"
+    "@zenstackhq/cli": "^3.8.2",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^3.4.19"
   }
 }
