@@ -20,6 +20,9 @@ importers:
       '@zenstackhq/orm':
         specifier: ^3.8.2
         version: 3.8.2(pg@8.22.0)(zod@4.4.3)
+      '@zenstackhq/plugin-policy':
+        specifier: 3.8.2
+        version: 3.8.2(kysely@0.29.2)(pg@8.22.0)(zod@4.4.3)
       '@zenstackhq/schema':
         specifier: ^3.8.2
         version: 3.8.2

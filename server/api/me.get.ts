@@ -1,6 +1,6 @@
 import { serverSupabaseUser } from "#supabase/server";
 import { createError } from "h3";
-import { db } from "../lib/zenstack";
+import { rawDb } from "../lib/zenstack";
 
 export default defineEventHandler(async (event) => {
   const supabaseUser = await serverSupabaseUser(event);
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const user = await db.user.upsert({
+  const user = await rawDb.user.upsert({
     where: { id: supabaseUser.sub! },
     update: { email },
     create: {

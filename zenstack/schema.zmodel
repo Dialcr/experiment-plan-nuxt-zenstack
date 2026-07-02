@@ -3,13 +3,107 @@ datasource db {
     url = env('DATABASE_URL')
 }
 
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+enum Role {
+    ADMIN  @map('admin')
+    MEMBER @map('member')
+    VIEWER @map('viewer')
+}
+
+enum StateGroup {
+    BACKLOG    @map('backlog')
+    UNSTARTED  @map('unstarted')
+    STARTED    @map('started')
+    COMPLETED  @map('completed')
+    CANCELLED  @map('cancelled')
+}
+
+type GeneratedId {
+    id String @id @default(cuid())
+}
+
+type Timestamps {
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
 /// Represents an authenticated person. Project authorization is handled through ProjectMember.
-model User {
+model User with Timestamps {
     id        String   @id
     name      String
     email     String   @unique @email
     isActive  Boolean  @default(true)
     avatarUrl String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+
+    ledProjects Project[]       @relation('ProjectLead')
+    memberships ProjectMember[]
+
+    @@allow('read', auth() != null && auth().isActive && (id == auth().id || memberships?[isActive && project.members?[userId == auth().id && isActive]]))
+    @@allow('update', auth() != null && auth().isActive && id == auth().id)
+}
+
+/// Top-level work container.
+model Project with GeneratedId, Timestamps {
+    name           String
+    identifier     String    @unique
+    description    String?
+    archivedAt     DateTime?
+
+    lead           User?     @relation('ProjectLead', fields: [leadId], references: [id], onDelete: SetNull)
+    leadId         String?
+
+    defaultState   State?    @relation('ProjectDefaultState', fields: [defaultStateId], references: [id], onDelete: SetNull)
+    defaultStateId String?   @unique
+
+    members        ProjectMember[]
+    states         State[]   @relation('ProjectStates')
+
+    @@allow('create', auth() != null && auth().isActive)
+    @@allow('read', auth() != null && auth().isActive && members?[userId == auth().id && isActive])
+    @@allow('update,delete', auth() != null && auth().isActive && members?[userId == auth().id && isActive && role == ADMIN])
+
+    @@index([archivedAt])
+}
+
+/// Links users to projects with a role.
+model ProjectMember with Timestamps {
+    project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+    user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId   String
+    role     Role    @default(MEMBER)
+    isActive Boolean @default(true)
+
+    @@allow('read', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive])
+    @@allow('create,update,delete', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive && role == ADMIN])
+
+    @@id([projectId, userId])
+    @@index([projectId, role])
+    @@index([userId])
+}
+
+/// Kanban column/workflow state.
+model State with GeneratedId, Timestamps {
+    project           Project  @relation('ProjectStates', fields: [projectId], references: [id], onDelete: Cascade)
+    projectId         String
+    name              String
+    slug              String
+    color             String
+    sequence          Int
+    group             StateGroup
+    isDefault         Boolean  @default(false)
+
+    defaultForProject Project? @relation('ProjectDefaultState')
+
+    @@deny('delete', isDefault)
+    @@allow('read', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive])
+    @@allow('create,update,delete', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive && role == ADMIN])
+
+    @@unique([projectId, name])
+    @@unique([projectId, slug])
+    @@index([projectId, sequence])
+    @@index([projectId, group])
 }
