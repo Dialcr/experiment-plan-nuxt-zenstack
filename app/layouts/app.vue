@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
+import type { DropdownMenuItem } from "@nuxt/ui";
 
-const route = useRoute();
 const supabase = useSupabaseClient();
 const supabaseUser = useSupabaseUser();
 const colorMode = useColorMode();
 const loading = ref(false);
+const { header, triggerPrimaryAction } = useAppHeader();
 
 const accountLabel = computed(
     () =>
@@ -13,15 +13,6 @@ const accountLabel = computed(
         supabaseUser.value?.email ??
         "Account",
 );
-
-const breadcrumbs = computed<BreadcrumbItem[]>(() => {
-    if (route.path.startsWith("/projects")) {
-        return [{ label: "Projects", to: "/projects" }];
-    }
-    return [{ label: "Projects", to: "/projects" }];
-});
-
-const showNewProject = computed(() => route.path === "/projects");
 
 const accountItems = computed<DropdownMenuItem[][]>(() => [
     [
@@ -106,15 +97,17 @@ async function signOut() {
                 icon="i-lucide-kanban"
                 label="Plane Light"
             />
-            <UBreadcrumb :items="breadcrumbs" color="neutral" />
+            <UBreadcrumb :items="header.breadcrumbs" color="neutral" />
         </template>
 
         <template #right>
             <UButton
-                v-if="showNewProject"
-                icon="i-lucide-plus"
-                label="New project"
-                disabled
+                v-if="header.primaryAction"
+                :icon="header.primaryAction.icon"
+                :label="header.primaryAction.label"
+                :color="header.primaryAction.color"
+                :variant="header.primaryAction.variant"
+                @click="triggerPrimaryAction"
             />
 
             <UDropdownMenu

@@ -3,6 +3,7 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
 
 const client = useZenStackClient();
+const { setHeader, setPrimaryAction, resetHeader } = useAppHeader();
 
 const { data: user, error: userError } = await useFetch("/api/me", {
     headers: useRequestHeaders(["cookie"]),
@@ -67,6 +68,10 @@ function closeCreateProjectDrawer() {
     createProjectOpen.value = false;
 }
 
+function openCreateProjectDrawer() {
+    createProjectOpen.value = true;
+}
+
 function getFetchErrorMessage(error: unknown) {
     if (error && typeof error === "object" && "statusMessage" in error) {
         const statusMessage = (error as { statusMessage?: unknown })
@@ -119,6 +124,18 @@ async function createProject(event: FormSubmitEvent<CreateProjectSchema>) {
         createProjectLoading.value = false;
     }
 }
+
+setHeader({
+    breadcrumbs: [{ label: "Projects", to: "/projects" }],
+});
+setPrimaryAction(
+    {
+        label: "New project",
+        icon: "i-lucide-plus",
+    },
+    openCreateProjectDrawer,
+);
+onUnmounted(resetHeader);
 </script>
 
 <template>
@@ -142,101 +159,95 @@ async function createProject(event: FormSubmitEvent<CreateProjectSchema>) {
         />
 
         <template v-else>
-            <div class="flex items-start justify-between gap-4">
-                <div class="space-y-1">
-                    <p class="text-sm text-muted">Welcome back</p>
-                    <h1 class="text-2xl font-semibold text-highlighted">
-                        {{ user?.name }}
-                    </h1>
-                    <p class="text-sm text-muted">{{ user?.email }}</p>
-                </div>
-
-                <UDrawer
-                    v-model:open="createProjectOpen"
-                    direction="right"
-                    title="New project"
-                    description="Create a project to organize issues, workflow states, and boards."
-                    :handle="false"
-                    :ui="{ content: 'w-full sm:max-w-md' }"
-                    @update:open="
-                        (open) => {
-                            if (!open) resetCreateProjectForm();
-                        }
-                    "
-                >
-                    <UButton icon="i-lucide-plus" label="New project" />
-
-                    <template #body>
-                        <UAlert
-                            v-if="createProjectError"
-                            color="error"
-                            icon="i-lucide-alert-circle"
-                            title="Unable to create project"
-                            :description="createProjectError"
-                            class="mb-4"
-                        />
-
-                        <UForm
-                            :schema="createProjectSchema"
-                            :state="createProjectState"
-                            class="space-y-4"
-                            @submit="createProject"
-                        >
-                            <UFormField
-                                label="Project name"
-                                name="name"
-                                required
-                            >
-                                <UInput
-                                    v-model="createProjectState.name"
-                                    placeholder="Website redesign"
-                                    autofocus
-                                />
-                            </UFormField>
-
-                            <UFormField
-                                label="Identifier"
-                                name="identifier"
-                                description="Short key used in issue numbers, like WEB-1."
-                                required
-                            >
-                                <UInput
-                                    v-model="createProjectState.identifier"
-                                    placeholder="WEB"
-                                    @blur="
-                                        createProjectState.identifier =
-                                            createProjectState.identifier.toUpperCase()
-                                    "
-                                />
-                            </UFormField>
-
-                            <UFormField label="Description" name="description">
-                                <UTextarea
-                                    v-model="createProjectState.description"
-                                    placeholder="Optional project context"
-                                    :rows="4"
-                                />
-                            </UFormField>
-
-                            <div class="flex justify-end gap-2 pt-2">
-                                <UButton
-                                    type="button"
-                                    color="neutral"
-                                    variant="outline"
-                                    label="Cancel"
-                                    @click="closeCreateProjectDrawer"
-                                />
-                                <UButton
-                                    type="submit"
-                                    label="Create project"
-                                    icon="i-lucide-plus"
-                                    :loading="createProjectLoading"
-                                />
-                            </div>
-                        </UForm>
-                    </template>
-                </UDrawer>
+            <div class="space-y-1">
+                <p class="text-sm text-muted">Welcome back</p>
+                <h1 class="text-2xl font-semibold text-highlighted">
+                    {{ user?.name }}
+                </h1>
+                <p class="text-sm text-muted">{{ user?.email }}</p>
             </div>
+
+            <AppSidePanel
+                v-model:open="createProjectOpen"
+                title="New project"
+                description="Create a project to organize issues, workflow states, and boards."
+                @update:open="
+                    (open) => {
+                        if (!open) resetCreateProjectForm();
+                    }
+                "
+            >
+                <UAlert
+                    v-if="createProjectError"
+                    color="error"
+                    icon="i-lucide-alert-circle"
+                    title="Unable to create project"
+                    :description="createProjectError"
+                    class="mb-4"
+                />
+
+                <UForm
+                    id="create-project-form"
+                    :schema="createProjectSchema"
+                    :state="createProjectState"
+                    class="space-y-4"
+                    @submit="createProject"
+                >
+                    <UFormField label="Project name" name="name" required>
+                        <UInput
+                            v-model="createProjectState.name"
+                            placeholder="Website redesign"
+                            class="w-full"
+                            autofocus
+                        />
+                    </UFormField>
+
+                    <UFormField
+                        label="Identifier"
+                        name="identifier"
+                        description="Short key used in issue numbers, like WEB-1."
+                        required
+                    >
+                        <UInput
+                            v-model="createProjectState.identifier"
+                            placeholder="WEB"
+                            class="w-full"
+                            @blur="
+                                createProjectState.identifier =
+                                    createProjectState.identifier.toUpperCase()
+                            "
+                        />
+                    </UFormField>
+
+                    <UFormField label="Description" name="description">
+                        <UTextarea
+                            v-model="createProjectState.description"
+                            placeholder="Optional project context"
+                            :rows="4"
+                            class="w-full"
+                        />
+                    </UFormField>
+                </UForm>
+
+                <template #footer>
+                    <div class="flex justify-between gap-2">
+                        <UButton
+                            type="button"
+                            color="neutral"
+                            variant="outline"
+                            label="Cancel"
+                            @click="closeCreateProjectDrawer"
+                        />
+                        <UButton
+                            type="submit"
+                            form="create-project-form"
+                            label="Create project"
+                            icon="i-lucide-plus"
+                            :loading="createProjectLoading"
+                        />
+                    </div>
+                </template>
+            </AppSidePanel>
 
             <UEmpty
                 v-if="projects.length === 0"
