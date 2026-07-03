@@ -38,8 +38,9 @@ model User with Timestamps {
     isActive  Boolean  @default(true)
     avatarUrl String?
 
-    ledProjects Project[]       @relation('ProjectLead')
-    memberships ProjectMember[]
+    createdProjects Project[]       @relation('ProjectCreator')
+    ledProjects     Project[]       @relation('ProjectLead')
+    memberships     ProjectMember[]
 
     @@allow('read', auth() != null && auth().isActive && (id == auth().id || memberships?[isActive && project.members?[userId == auth().id && isActive]]))
     @@allow('update', auth() != null && auth().isActive && id == auth().id)
@@ -52,6 +53,9 @@ model Project with GeneratedId, Timestamps {
     description    String?
     archivedAt     DateTime?
 
+    createdBy      User      @relation('ProjectCreator', fields: [createdById], references: [id], onDelete: Restrict)
+    createdById    String
+
     lead           User?     @relation('ProjectLead', fields: [leadId], references: [id], onDelete: SetNull)
     leadId         String?
 
@@ -61,7 +65,7 @@ model Project with GeneratedId, Timestamps {
     members        ProjectMember[]
     states         State[]   @relation('ProjectStates')
 
-    @@allow('create', auth() != null && auth().isActive)
+    @@allow('create', auth() != null && auth().isActive && createdById == auth().id)
     @@allow('read', auth() != null && auth().isActive && members?[userId == auth().id && isActive])
     @@allow('update,delete', auth() != null && auth().isActive && members?[userId == auth().id && isActive && role == ADMIN])
 
@@ -78,6 +82,7 @@ model ProjectMember with Timestamps {
     isActive Boolean @default(true)
 
     @@allow('read', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive])
+    @@allow('create', auth() != null && auth().isActive && userId == auth().id && role == ADMIN && project.createdById == auth().id)
     @@allow('create,update,delete', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive && role == ADMIN])
 
     @@id([projectId, userId])

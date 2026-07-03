@@ -1,3 +1,6 @@
+overrides:
+  "@nuxt/icon": 2.2.5
+
 allowBuilds:
   "@parcel/watcher": true
   "@prisma/engines": true

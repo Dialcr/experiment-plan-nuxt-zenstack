@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "TMPDIR=/tmp nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -13,9 +13,11 @@
     "@iconify-json/lucide": "^1.2.115",
     "@nuxt/ui": "^4.9.0",
     "@t3-oss/env-nuxt": "^0.13.11",
+    "@zenstackhq/fetch-client": "^3.8.2",
     "@zenstackhq/orm": "^3.8.2",
     "@zenstackhq/plugin-policy": "3.8.2",
     "@zenstackhq/schema": "^3.8.2",
+    "@zenstackhq/server": "^3.8.2",
     "nuxt": "^4.4.8",
     "pg": "^8.22.0",
     "vue": "^3.5.38",
