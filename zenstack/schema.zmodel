@@ -21,94 +21,261 @@ enum StateGroup {
     CANCELLED  @map('cancelled')
 }
 
+enum IssuePriority {
+    URGENT @map('urgent')
+    HIGH   @map('high')
+    MEDIUM @map('medium')
+    LOW    @map('low')
+    NONE   @map('none')
+}
+
+enum SprintStatus {
+    PLANNED   @map('planned')
+    ACTIVE    @map('active')
+    COMPLETED @map('completed')
+}
+
 type GeneratedId {
     id String @id @default(cuid())
 }
 
 type Timestamps {
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
 }
 
 /// Represents an authenticated person. Project authorization is handled through ProjectMember.
 model User with Timestamps {
-    id        String   @id
-    name      String
-    email     String   @unique @email
-    isActive  Boolean  @default(true)
-    avatarUrl String?
+    @@map("users")
 
-    createdProjects Project[]       @relation('ProjectCreator')
-    ledProjects     Project[]       @relation('ProjectLead')
-    memberships     ProjectMember[]
+    id         String  @id
+    name       String
+    email      String  @unique @email
+    is_active  Boolean @default(true)
+    avatar_url String?
 
-    @@allow('read', auth() != null && auth().isActive && (id == auth().id || memberships?[isActive && project.members?[userId == auth().id && isActive]]))
-    @@allow('update', auth() != null && auth().isActive && id == auth().id)
+    createdProjects  Project[]       @relation('ProjectCreator')
+    ledProjects      Project[]       @relation('ProjectLead')
+    memberships      ProjectMember[]
+    assignedIssues   IssueAssignee[]
+    createdIssues    Issue[]         @relation('IssueCreator')
+    updatedIssues    Issue[]         @relation('IssueUpdater')
+    authoredComments Comment[]       @relation('CommentAuthor')
+    ownedSprints     Sprint[]        @relation('SprintOwner')
+
+    @@allow('read', auth() != null && auth().is_active && (id == auth().id || memberships?[is_active && project.members?[user_id == auth().id && is_active]]))
+    @@allow('update', auth() != null && auth().is_active && id == auth().id)
 }
 
 /// Top-level work container.
 model Project with GeneratedId, Timestamps {
-    name           String
-    identifier     String    @unique
-    description    String?
-    archivedAt     DateTime?
+    @@map("projects")
 
-    createdBy      User      @relation('ProjectCreator', fields: [createdById], references: [id], onDelete: Restrict)
-    createdById    String
+    name             String
+    identifier       String    @unique
+    description      String?
+    archived_at      DateTime?
 
-    lead           User?     @relation('ProjectLead', fields: [leadId], references: [id], onDelete: SetNull)
-    leadId         String?
+    created_by       User      @relation('ProjectCreator', fields: [created_by_id], references: [id], onDelete: Restrict)
+    created_by_id    String
 
-    defaultState   State?    @relation('ProjectDefaultState', fields: [defaultStateId], references: [id], onDelete: SetNull)
-    defaultStateId String?   @unique
+    lead             User?     @relation('ProjectLead', fields: [lead_id], references: [id], onDelete: SetNull)
+    lead_id          String?
 
-    members        ProjectMember[]
-    states         State[]   @relation('ProjectStates')
+    default_state    State?    @relation('ProjectDefaultState', fields: [default_state_id], references: [id], onDelete: SetNull)
+    default_state_id String?   @unique
 
-    @@allow('create', auth() != null && auth().isActive && createdById == auth().id)
-    @@allow('read', auth() != null && auth().isActive && members?[userId == auth().id && isActive])
-    @@allow('update,delete', auth() != null && auth().isActive && members?[userId == auth().id && isActive && role == ADMIN])
+    members          ProjectMember[]
+    states           State[]       @relation('ProjectStates')
+    issues           Issue[]
+    sprints          Sprint[]
+    labels           Label[]
+    comments         Comment[]
 
-    @@index([archivedAt])
+    @@allow('create', auth() != null && auth().is_active && created_by_id == auth().id)
+    @@allow('read', auth() != null && auth().is_active && members?[user_id == auth().id && is_active])
+    @@allow('update,delete', auth() != null && auth().is_active && members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@index([archived_at])
 }
 
 /// Links users to projects with a role.
 model ProjectMember with Timestamps {
-    project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-    projectId String
-    user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId   String
-    role     Role    @default(MEMBER)
-    isActive Boolean @default(true)
+    @@map("project_members")
 
-    @@allow('read', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive])
-    @@allow('create', auth() != null && auth().isActive && userId == auth().id && role == ADMIN && project.createdById == auth().id)
-    @@allow('create,update,delete', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive && role == ADMIN])
+    project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    project_id String
+    user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    user_id    String
+    role       Role     @default(MEMBER)
+    is_active  Boolean  @default(true)
 
-    @@id([projectId, userId])
-    @@index([projectId, role])
-    @@index([userId])
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create', auth() != null && auth().is_active && user_id == auth().id && role == ADMIN && project.created_by_id == auth().id)
+    @@allow('create,update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@id([project_id, user_id])
+    @@index([project_id, role])
+    @@index([user_id])
 }
 
-/// Kanban column/workflow state.
+/// Kanban column / workflow state.
 model State with GeneratedId, Timestamps {
-    project           Project  @relation('ProjectStates', fields: [projectId], references: [id], onDelete: Cascade)
-    projectId         String
-    name              String
-    slug              String
-    color             String
-    sequence          Int
-    group             StateGroup
-    isDefault         Boolean  @default(false)
+    @@map("states")
 
-    defaultForProject Project? @relation('ProjectDefaultState')
+    project    Project    @relation('ProjectStates', fields: [project_id], references: [id], onDelete: Cascade)
+    project_id String
+    name       String
+    slug       String
+    color      String
+    sequence   Int
+    group      StateGroup
+    is_default Boolean   @default(false)
 
-    @@deny('delete', isDefault)
-    @@allow('read', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive])
-    @@allow('create,update,delete', auth() != null && auth().isActive && project.members?[userId == auth().id && isActive && role == ADMIN])
+    default_for_project Project? @relation('ProjectDefaultState')
+    issues              Issue[]
 
-    @@unique([projectId, name])
-    @@unique([projectId, slug])
-    @@index([projectId, sequence])
-    @@index([projectId, group])
+    @@deny('delete', is_default)
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create,update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@unique([project_id, name])
+    @@unique([project_id, slug])
+    @@index([project_id, sequence])
+    @@index([project_id, group])
+}
+
+/// A tracked unit of work within a project.
+/// Application rule: if no state is provided, use project default state.
+/// Application rule: sequence_id auto-increments per project (e.g. WEB-1).
+model Issue with GeneratedId, Timestamps {
+    @@map("issues")
+
+    project      Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    project_id   String
+    state        State       @relation(fields: [state_id], references: [id], onDelete: Restrict)
+    state_id     String
+    sprint       Sprint?     @relation(fields: [sprint_id], references: [id], onDelete: SetNull)
+    sprint_id    String?
+    parent       Issue?      @relation('IssueParent', fields: [parent_id], references: [id], onDelete: SetNull)
+    parent_id    String?
+    sequence_id  Int
+    sort_order   Int         @default(0)
+    title        String
+    description  String?
+    priority     IssuePriority @default(NONE)
+    start_date   DateTime?
+    due_date     DateTime?
+    completed_at DateTime?
+    archived_at  DateTime?
+
+    created_by   User  @relation('IssueCreator', fields: [created_by_id], references: [id], onDelete: Restrict)
+    created_by_id String
+    updated_by   User  @relation('IssueUpdater', fields: [updated_by_id], references: [id], onDelete: Restrict)
+    updated_by_id String
+
+    children   Issue[]         @relation('IssueParent')
+    assignees  IssueAssignee[]
+    labels     IssueLabel[]
+    comments   Comment[]
+
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@unique([project_id, sequence_id])
+    @@index([project_id, state_id, sort_order])
+    @@index([project_id, sprint_id])
+    @@index([project_id, priority])
+    @@index([project_id, archived_at])
+    @@index([created_by_id])
+}
+
+/// A time-boxed iteration within a project.
+model Sprint with GeneratedId, Timestamps {
+    @@map("sprints")
+
+    project     Project      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    project_id  String
+    owner       User         @relation('SprintOwner', fields: [owner_id], references: [id], onDelete: Restrict)
+    owner_id    String
+    name        String
+    description String?
+    start_date  DateTime?
+    end_date    DateTime?
+    status      SprintStatus @default(PLANNED)
+    archived_at DateTime?
+
+    issues Issue[]
+
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@index([project_id, status])
+    @@index([project_id, start_date, end_date])
+}
+
+/// A tag that can be attached to issues.
+model Label with GeneratedId, Timestamps {
+    @@map("labels")
+
+    project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    project_id String
+    name       String
+    color      String  @default("#6366f1")
+
+    issues IssueLabel[]
+
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+
+    @@unique([project_id, name])
+}
+
+/// A comment on an issue.
+model Comment with GeneratedId, Timestamps {
+    @@map("comments")
+
+    project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    project_id String
+    issue      Issue   @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+    issue_id   String
+    author     User    @relation('CommentAuthor', fields: [author_id], references: [id], onDelete: Restrict)
+    author_id  String
+    body       String
+
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('update', auth() != null && auth().is_active && author_id == auth().id)
+    @@allow('delete', auth() != null && auth().is_active && (author_id == auth().id || project.members?[user_id == auth().id && is_active && role == ADMIN]))
+}
+
+/// Join table: Issue <-> User (many-to-many).
+model IssueAssignee {
+    @@map("issue_assignees")
+
+    issue    Issue @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+    issue_id String
+    user     User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    user_id  String
+
+    @@allow('all', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+
+    @@id([issue_id, user_id])
+}
+
+/// Join table: Issue <-> Label (many-to-many).
+model IssueLabel {
+    @@map("issue_labels")
+
+    issue    Issue @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+    issue_id String
+    label    Label @relation(fields: [label_id], references: [id], onDelete: Cascade)
+    label_id String
+
+    @@allow('all', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+
+    @@id([issue_id, label_id])
 }
