@@ -42,5 +42,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate ZenStack artifacts
+        run: pnpm zen generate
+
       - name: Build project
         run: pnpm build
