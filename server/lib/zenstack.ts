@@ -55,7 +55,7 @@ export async function getCurrentUser(event: H3Event) {
     },
   });
 
-  if (!user.isActive) {
+  if (!user.is_active) {
     throw createError({
       statusCode: 403,
       statusMessage: "User is inactive",

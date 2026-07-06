@@ -14,13 +14,13 @@ export class SchemaType implements SchemaDef {
         User: {
             name: "User",
             fields: {
-                createdAt: {
-                    name: "createdAt",
+                created_at: {
+                    name: "created_at",
                     type: "DateTime",
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
-                updatedAt: {
-                    name: "updatedAt",
+                updated_at: {
+                    name: "updated_at",
                     type: "DateTime",
                     updatedAt: true
                 },
@@ -38,13 +38,13 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     unique: true
                 },
-                isActive: {
-                    name: "isActive",
+                is_active: {
+                    name: "is_active",
                     type: "Boolean",
                     default: true as FieldDefault
                 },
-                avatarUrl: {
-                    name: "avatarUrl",
+                avatar_url: {
+                    name: "avatar_url",
                     type: "String",
                     optional: true
                 },
@@ -52,7 +52,7 @@ export class SchemaType implements SchemaDef {
                     name: "createdProjects",
                     type: "Project",
                     array: true,
-                    relation: { opposite: "createdBy", name: "ProjectCreator" }
+                    relation: { opposite: "created_by", name: "ProjectCreator" }
                 },
                 ledProjects: {
                     name: "ledProjects",
@@ -65,6 +65,36 @@ export class SchemaType implements SchemaDef {
                     type: "ProjectMember",
                     array: true,
                     relation: { opposite: "user" }
+                },
+                assignedIssues: {
+                    name: "assignedIssues",
+                    type: "IssueAssignee",
+                    array: true,
+                    relation: { opposite: "user" }
+                },
+                createdIssues: {
+                    name: "createdIssues",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "created_by", name: "IssueCreator" }
+                },
+                updatedIssues: {
+                    name: "updatedIssues",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "updated_by", name: "IssueUpdater" }
+                },
+                authoredComments: {
+                    name: "authoredComments",
+                    type: "Comment",
+                    array: true,
+                    relation: { opposite: "author", name: "CommentAuthor" }
+                },
+                ownedSprints: {
+                    name: "ownedSprints",
+                    type: "Sprint",
+                    array: true,
+                    relation: { opposite: "owner", name: "SprintOwner" }
                 }
             },
             idFields: ["id"],
@@ -82,13 +112,13 @@ export class SchemaType implements SchemaDef {
                     id: true,
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
-                createdAt: {
-                    name: "createdAt",
+                created_at: {
+                    name: "created_at",
                     type: "DateTime",
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
-                updatedAt: {
-                    name: "updatedAt",
+                updated_at: {
+                    name: "updated_at",
                     type: "DateTime",
                     updatedAt: true
                 },
@@ -106,50 +136,50 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     optional: true
                 },
-                archivedAt: {
-                    name: "archivedAt",
+                archived_at: {
+                    name: "archived_at",
                     type: "DateTime",
                     optional: true
                 },
-                createdBy: {
-                    name: "createdBy",
+                created_by: {
+                    name: "created_by",
                     type: "User",
-                    relation: { opposite: "createdProjects", name: "ProjectCreator", fields: ["createdById"], references: ["id"], onDelete: "Restrict" }
+                    relation: { opposite: "createdProjects", name: "ProjectCreator", fields: ["created_by_id"], references: ["id"], onDelete: "Restrict" }
                 },
-                createdById: {
-                    name: "createdById",
+                created_by_id: {
+                    name: "created_by_id",
                     type: "String",
                     foreignKeyFor: [
-                        "createdBy"
+                        "created_by"
                     ] as readonly string[]
                 },
                 lead: {
                     name: "lead",
                     type: "User",
                     optional: true,
-                    relation: { opposite: "ledProjects", name: "ProjectLead", fields: ["leadId"], references: ["id"], onDelete: "SetNull" }
+                    relation: { opposite: "ledProjects", name: "ProjectLead", fields: ["lead_id"], references: ["id"], onDelete: "SetNull" }
                 },
-                leadId: {
-                    name: "leadId",
+                lead_id: {
+                    name: "lead_id",
                     type: "String",
                     optional: true,
                     foreignKeyFor: [
                         "lead"
                     ] as readonly string[]
                 },
-                defaultState: {
-                    name: "defaultState",
+                default_state: {
+                    name: "default_state",
                     type: "State",
                     optional: true,
-                    relation: { opposite: "defaultForProject", name: "ProjectDefaultState", fields: ["defaultStateId"], references: ["id"], onDelete: "SetNull" }
+                    relation: { opposite: "default_for_project", name: "ProjectDefaultState", fields: ["default_state_id"], references: ["id"], onDelete: "SetNull" }
                 },
-                defaultStateId: {
-                    name: "defaultStateId",
+                default_state_id: {
+                    name: "default_state_id",
                     type: "String",
                     unique: true,
                     optional: true,
                     foreignKeyFor: [
-                        "defaultState"
+                        "default_state"
                     ] as readonly string[]
                 },
                 members: {
@@ -163,35 +193,59 @@ export class SchemaType implements SchemaDef {
                     type: "State",
                     array: true,
                     relation: { opposite: "project", name: "ProjectStates" }
+                },
+                issues: {
+                    name: "issues",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "project" }
+                },
+                sprints: {
+                    name: "sprints",
+                    type: "Sprint",
+                    array: true,
+                    relation: { opposite: "project" }
+                },
+                labels: {
+                    name: "labels",
+                    type: "Label",
+                    array: true,
+                    relation: { opposite: "project" }
+                },
+                comments: {
+                    name: "comments",
+                    type: "Comment",
+                    array: true,
+                    relation: { opposite: "project" }
                 }
             },
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" },
                 identifier: { type: "String" },
-                defaultStateId: { type: "String" }
+                default_state_id: { type: "String" }
             }
         },
         ProjectMember: {
             name: "ProjectMember",
             fields: {
-                createdAt: {
-                    name: "createdAt",
+                created_at: {
+                    name: "created_at",
                     type: "DateTime",
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
-                updatedAt: {
-                    name: "updatedAt",
+                updated_at: {
+                    name: "updated_at",
                     type: "DateTime",
                     updatedAt: true
                 },
                 project: {
                     name: "project",
                     type: "Project",
-                    relation: { opposite: "members", fields: ["projectId"], references: ["id"], onDelete: "Cascade" }
+                    relation: { opposite: "members", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
                 },
-                projectId: {
-                    name: "projectId",
+                project_id: {
+                    name: "project_id",
                     type: "String",
                     id: true,
                     foreignKeyFor: [
@@ -201,10 +255,10 @@ export class SchemaType implements SchemaDef {
                 user: {
                     name: "user",
                     type: "User",
-                    relation: { opposite: "memberships", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    relation: { opposite: "memberships", fields: ["user_id"], references: ["id"], onDelete: "Cascade" }
                 },
-                userId: {
-                    name: "userId",
+                user_id: {
+                    name: "user_id",
                     type: "String",
                     id: true,
                     foreignKeyFor: [
@@ -216,15 +270,15 @@ export class SchemaType implements SchemaDef {
                     type: "Role",
                     default: "MEMBER" as FieldDefault
                 },
-                isActive: {
-                    name: "isActive",
+                is_active: {
+                    name: "is_active",
                     type: "Boolean",
                     default: true as FieldDefault
                 }
             },
-            idFields: ["projectId", "userId"],
+            idFields: ["project_id", "user_id"],
             uniqueFields: {
-                projectId_userId: { projectId: { type: "String" }, userId: { type: "String" } }
+                project_id_user_id: { project_id: { type: "String" }, user_id: { type: "String" } }
             }
         },
         State: {
@@ -236,23 +290,23 @@ export class SchemaType implements SchemaDef {
                     id: true,
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
-                createdAt: {
-                    name: "createdAt",
+                created_at: {
+                    name: "created_at",
                     type: "DateTime",
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
-                updatedAt: {
-                    name: "updatedAt",
+                updated_at: {
+                    name: "updated_at",
                     type: "DateTime",
                     updatedAt: true
                 },
                 project: {
                     name: "project",
                     type: "Project",
-                    relation: { opposite: "states", name: "ProjectStates", fields: ["projectId"], references: ["id"], onDelete: "Cascade" }
+                    relation: { opposite: "states", name: "ProjectStates", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
                 },
-                projectId: {
-                    name: "projectId",
+                project_id: {
+                    name: "project_id",
                     type: "String",
                     foreignKeyFor: [
                         "project"
@@ -278,23 +332,470 @@ export class SchemaType implements SchemaDef {
                     name: "group",
                     type: "StateGroup"
                 },
-                isDefault: {
-                    name: "isDefault",
+                is_default: {
+                    name: "is_default",
                     type: "Boolean",
                     default: false as FieldDefault
                 },
-                defaultForProject: {
-                    name: "defaultForProject",
+                default_for_project: {
+                    name: "default_for_project",
                     type: "Project",
                     optional: true,
-                    relation: { opposite: "defaultState", name: "ProjectDefaultState" }
+                    relation: { opposite: "default_state", name: "ProjectDefaultState" }
+                },
+                issues: {
+                    name: "issues",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "state" }
                 }
             },
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" },
-                projectId_name: { projectId: { type: "String" }, name: { type: "String" } },
-                projectId_slug: { projectId: { type: "String" }, slug: { type: "String" } }
+                project_id_name: { project_id: { type: "String" }, name: { type: "String" } },
+                project_id_slug: { project_id: { type: "String" }, slug: { type: "String" } }
+            }
+        },
+        Issue: {
+            name: "Issue",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                created_at: {
+                    name: "created_at",
+                    type: "DateTime",
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updated_at: {
+                    name: "updated_at",
+                    type: "DateTime",
+                    updatedAt: true
+                },
+                project: {
+                    name: "project",
+                    type: "Project",
+                    relation: { opposite: "issues", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                project_id: {
+                    name: "project_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
+                },
+                state: {
+                    name: "state",
+                    type: "State",
+                    relation: { opposite: "issues", fields: ["state_id"], references: ["id"], onDelete: "Restrict" }
+                },
+                state_id: {
+                    name: "state_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "state"
+                    ] as readonly string[]
+                },
+                sprint: {
+                    name: "sprint",
+                    type: "Sprint",
+                    optional: true,
+                    relation: { opposite: "issues", fields: ["sprint_id"], references: ["id"], onDelete: "SetNull" }
+                },
+                sprint_id: {
+                    name: "sprint_id",
+                    type: "String",
+                    optional: true,
+                    foreignKeyFor: [
+                        "sprint"
+                    ] as readonly string[]
+                },
+                parent: {
+                    name: "parent",
+                    type: "Issue",
+                    optional: true,
+                    relation: { opposite: "children", name: "IssueParent", fields: ["parent_id"], references: ["id"], onDelete: "SetNull" }
+                },
+                parent_id: {
+                    name: "parent_id",
+                    type: "String",
+                    optional: true,
+                    foreignKeyFor: [
+                        "parent"
+                    ] as readonly string[]
+                },
+                sequence_id: {
+                    name: "sequence_id",
+                    type: "Int"
+                },
+                sort_order: {
+                    name: "sort_order",
+                    type: "Int",
+                    default: 0 as FieldDefault
+                },
+                title: {
+                    name: "title",
+                    type: "String"
+                },
+                description: {
+                    name: "description",
+                    type: "String",
+                    optional: true
+                },
+                priority: {
+                    name: "priority",
+                    type: "IssuePriority",
+                    default: "NONE" as FieldDefault
+                },
+                start_date: {
+                    name: "start_date",
+                    type: "DateTime",
+                    optional: true
+                },
+                due_date: {
+                    name: "due_date",
+                    type: "DateTime",
+                    optional: true
+                },
+                completed_at: {
+                    name: "completed_at",
+                    type: "DateTime",
+                    optional: true
+                },
+                archived_at: {
+                    name: "archived_at",
+                    type: "DateTime",
+                    optional: true
+                },
+                created_by: {
+                    name: "created_by",
+                    type: "User",
+                    relation: { opposite: "createdIssues", name: "IssueCreator", fields: ["created_by_id"], references: ["id"], onDelete: "Restrict" }
+                },
+                created_by_id: {
+                    name: "created_by_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "created_by"
+                    ] as readonly string[]
+                },
+                updated_by: {
+                    name: "updated_by",
+                    type: "User",
+                    relation: { opposite: "updatedIssues", name: "IssueUpdater", fields: ["updated_by_id"], references: ["id"], onDelete: "Restrict" }
+                },
+                updated_by_id: {
+                    name: "updated_by_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "updated_by"
+                    ] as readonly string[]
+                },
+                children: {
+                    name: "children",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "parent", name: "IssueParent" }
+                },
+                assignees: {
+                    name: "assignees",
+                    type: "IssueAssignee",
+                    array: true,
+                    relation: { opposite: "issue" }
+                },
+                labels: {
+                    name: "labels",
+                    type: "IssueLabel",
+                    array: true,
+                    relation: { opposite: "issue" }
+                },
+                comments: {
+                    name: "comments",
+                    type: "Comment",
+                    array: true,
+                    relation: { opposite: "issue" }
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" },
+                project_id_sequence_id: { project_id: { type: "String" }, sequence_id: { type: "Int" } }
+            }
+        },
+        Sprint: {
+            name: "Sprint",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                created_at: {
+                    name: "created_at",
+                    type: "DateTime",
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updated_at: {
+                    name: "updated_at",
+                    type: "DateTime",
+                    updatedAt: true
+                },
+                project: {
+                    name: "project",
+                    type: "Project",
+                    relation: { opposite: "sprints", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                project_id: {
+                    name: "project_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
+                },
+                owner: {
+                    name: "owner",
+                    type: "User",
+                    relation: { opposite: "ownedSprints", name: "SprintOwner", fields: ["owner_id"], references: ["id"], onDelete: "Restrict" }
+                },
+                owner_id: {
+                    name: "owner_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "owner"
+                    ] as readonly string[]
+                },
+                name: {
+                    name: "name",
+                    type: "String"
+                },
+                description: {
+                    name: "description",
+                    type: "String",
+                    optional: true
+                },
+                start_date: {
+                    name: "start_date",
+                    type: "DateTime",
+                    optional: true
+                },
+                end_date: {
+                    name: "end_date",
+                    type: "DateTime",
+                    optional: true
+                },
+                status: {
+                    name: "status",
+                    type: "SprintStatus",
+                    default: "PLANNED" as FieldDefault
+                },
+                archived_at: {
+                    name: "archived_at",
+                    type: "DateTime",
+                    optional: true
+                },
+                issues: {
+                    name: "issues",
+                    type: "Issue",
+                    array: true,
+                    relation: { opposite: "sprint" }
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
+        },
+        Label: {
+            name: "Label",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                created_at: {
+                    name: "created_at",
+                    type: "DateTime",
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updated_at: {
+                    name: "updated_at",
+                    type: "DateTime",
+                    updatedAt: true
+                },
+                project: {
+                    name: "project",
+                    type: "Project",
+                    relation: { opposite: "labels", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                project_id: {
+                    name: "project_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
+                },
+                name: {
+                    name: "name",
+                    type: "String"
+                },
+                color: {
+                    name: "color",
+                    type: "String",
+                    default: "#6366f1" as FieldDefault
+                },
+                issues: {
+                    name: "issues",
+                    type: "IssueLabel",
+                    array: true,
+                    relation: { opposite: "label" }
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" },
+                project_id_name: { project_id: { type: "String" }, name: { type: "String" } }
+            }
+        },
+        Comment: {
+            name: "Comment",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                created_at: {
+                    name: "created_at",
+                    type: "DateTime",
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updated_at: {
+                    name: "updated_at",
+                    type: "DateTime",
+                    updatedAt: true
+                },
+                project: {
+                    name: "project",
+                    type: "Project",
+                    relation: { opposite: "comments", fields: ["project_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                project_id: {
+                    name: "project_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
+                },
+                issue: {
+                    name: "issue",
+                    type: "Issue",
+                    relation: { opposite: "comments", fields: ["issue_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                issue_id: {
+                    name: "issue_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "issue"
+                    ] as readonly string[]
+                },
+                author: {
+                    name: "author",
+                    type: "User",
+                    relation: { opposite: "authoredComments", name: "CommentAuthor", fields: ["author_id"], references: ["id"], onDelete: "Restrict" }
+                },
+                author_id: {
+                    name: "author_id",
+                    type: "String",
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                },
+                body: {
+                    name: "body",
+                    type: "String"
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
+        },
+        IssueAssignee: {
+            name: "IssueAssignee",
+            fields: {
+                issue: {
+                    name: "issue",
+                    type: "Issue",
+                    relation: { opposite: "assignees", fields: ["issue_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                issue_id: {
+                    name: "issue_id",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "issue"
+                    ] as readonly string[]
+                },
+                user: {
+                    name: "user",
+                    type: "User",
+                    relation: { opposite: "assignedIssues", fields: ["user_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                user_id: {
+                    name: "user_id",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "user"
+                    ] as readonly string[]
+                }
+            },
+            idFields: ["issue_id", "user_id"],
+            uniqueFields: {
+                issue_id_user_id: { issue_id: { type: "String" }, user_id: { type: "String" } }
+            }
+        },
+        IssueLabel: {
+            name: "IssueLabel",
+            fields: {
+                issue: {
+                    name: "issue",
+                    type: "Issue",
+                    relation: { opposite: "labels", fields: ["issue_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                issue_id: {
+                    name: "issue_id",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "issue"
+                    ] as readonly string[]
+                },
+                label: {
+                    name: "label",
+                    type: "Label",
+                    relation: { opposite: "issues", fields: ["label_id"], references: ["id"], onDelete: "Cascade" }
+                },
+                label_id: {
+                    name: "label_id",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "label"
+                    ] as readonly string[]
+                }
+            },
+            idFields: ["issue_id", "label_id"],
+            uniqueFields: {
+                issue_id_label_id: { issue_id: { type: "String" }, label_id: { type: "String" } }
             }
         }
     } as const;
@@ -312,13 +813,13 @@ export class SchemaType implements SchemaDef {
         Timestamps: {
             name: "Timestamps",
             fields: {
-                createdAt: {
-                    name: "createdAt",
+                created_at: {
+                    name: "created_at",
                     type: "DateTime",
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
-                updatedAt: {
-                    name: "updatedAt",
+                updated_at: {
+                    name: "updated_at",
                     type: "DateTime",
                     updatedAt: true
                 }
@@ -392,6 +893,76 @@ export class SchemaType implements SchemaDef {
                     name: "CANCELLED",
                     attributes: [
                         { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("cancelled") }] }
+                    ] as readonly AttributeApplication[]
+                }
+            }
+        },
+        IssuePriority: {
+            name: "IssuePriority",
+            values: {
+                URGENT: "URGENT",
+                HIGH: "HIGH",
+                MEDIUM: "MEDIUM",
+                LOW: "LOW",
+                NONE: "NONE"
+            },
+            fields: {
+                URGENT: {
+                    name: "URGENT",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("urgent") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                HIGH: {
+                    name: "HIGH",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("high") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                MEDIUM: {
+                    name: "MEDIUM",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("medium") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                LOW: {
+                    name: "LOW",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("low") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                NONE: {
+                    name: "NONE",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("none") }] }
+                    ] as readonly AttributeApplication[]
+                }
+            }
+        },
+        SprintStatus: {
+            name: "SprintStatus",
+            values: {
+                PLANNED: "PLANNED",
+                ACTIVE: "ACTIVE",
+                COMPLETED: "COMPLETED"
+            },
+            fields: {
+                PLANNED: {
+                    name: "PLANNED",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("planned") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                ACTIVE: {
+                    name: "ACTIVE",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("active") }] }
+                    ] as readonly AttributeApplication[]
+                },
+                COMPLETED: {
+                    name: "COMPLETED",
+                    attributes: [
+                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("completed") }] }
                     ] as readonly AttributeApplication[]
                 }
             }
