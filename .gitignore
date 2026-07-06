@@ -27,3 +27,7 @@ logs
 zenstack/input.ts
 zenstack/models.ts
 zenstack/schema.ts
+
+
+# others 
+*plan-design-es.md
