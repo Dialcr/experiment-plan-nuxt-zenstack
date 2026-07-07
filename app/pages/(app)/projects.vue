@@ -222,6 +222,7 @@ onUnmounted(resetHeader);
           :key="project.id"
           :title="project.name"
           :description="project.description ?? 'No description yet.'"
+          :to="`/projects/${project.id}`"
         >
           <template #footer>
             <UBadge color="neutral" variant="subtle">

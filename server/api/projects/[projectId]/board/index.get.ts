@@ -7,6 +7,7 @@ export default defineEventHandler((event) => {
     state_id: query.state_id,
     assignee_id: query.assignee_id,
     priority: query.priority,
+    sprint_id: query.sprint_id,
     search: query.search,
     created_by_id: query.created_by_id,
     due_date: query.due_date,
