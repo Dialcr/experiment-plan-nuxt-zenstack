@@ -2,7 +2,6 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
 
-const client = useZenStackClient();
 const { setHeader, setPrimaryAction, resetHeader } = useAppHeader();
 
 const { data: user, error: userError } = await useFetch("/api/me", {
@@ -13,23 +12,9 @@ const {
   data: projects,
   error: projectsError,
   refresh: refreshProjects,
-} = await useAsyncData(
-  "projects",
-  () =>
-    client.project.findMany({
-      where: { archived_at: null },
-      orderBy: { created_at: "desc" },
-      select: {
-        id: true,
-        name: true,
-        identifier: true,
-        description: true,
-        created_at: true,
-        updated_at: true,
-      },
-    }),
-  { default: () => [] },
-);
+} = await useAsyncData("projects", () => $fetch("/api/projects"), {
+  default: () => [],
+});
 
 const createProjectOpen = ref(false);
 const createProjectLoading = ref(false);
@@ -83,31 +68,12 @@ async function createProject(event: FormSubmitEvent<CreateProjectSchema>) {
   createProjectLoading.value = true;
 
   try {
-    if (!user.value) {
-      throw new Error("User profile has not loaded yet.");
-    }
-
-    await client.project.create({
-      data: {
+    await $fetch("/api/projects", {
+      method: "POST",
+      body: {
         name: event.data.name,
         identifier: event.data.identifier.toUpperCase(),
         description: event.data.description || undefined,
-        created_by_id: user.value.id,
-        lead_id: user.value.id,
-        members: {
-          create: {
-            user_id: user.value.id,
-            role: "ADMIN",
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        identifier: true,
-        description: true,
-        created_at: true,
-        updated_at: true,
       },
     });
 
