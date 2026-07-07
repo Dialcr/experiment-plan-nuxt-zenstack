@@ -52,6 +52,7 @@ function buildIssueFilters(projectId: string, filters: IssueListFilters) {
   if (filters.priority) where.priority = filters.priority;
   if (filters.created_by_id) where.created_by_id = filters.created_by_id;
   if (filters.due_date) where.due_date = new Date(filters.due_date);
+  if (filters.sprint_id) where.sprint_id = filters.sprint_id;
   if (filters.assignee_id) {
     where.assignees = { some: { user_id: filters.assignee_id } };
   }
