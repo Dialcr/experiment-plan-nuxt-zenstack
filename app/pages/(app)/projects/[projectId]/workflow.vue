@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
+import type { ProjectResponse } from "~~/server/lib/project";
+import type { StateResponse } from "~~/server/lib/state";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project } = await useAsyncData(
+const { data: project } = await useAsyncData<ProjectResponse>(
   `project-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}`),
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: states, refresh: refreshStates } = await useAsyncData(
+const { data: states, refresh: refreshStates } = await useAsyncData<StateResponse[]>(
   `states-${projectId}-workflow`,
-  () => $fetch(`/api/projects/${projectId}/states`),
+  () => serverFetch(`/api/projects/${projectId}/states`),
   { default: () => [] },
 );
 
@@ -51,7 +53,7 @@ function openCreate() {
   showForm.value = true;
 }
 
-function openEdit(state: any) {
+function openEdit(state: StateResponse) {
   editingState.value = state;
   formState.name = state.name;
   formState.slug = state.slug;
@@ -65,12 +67,12 @@ async function save(event: FormSubmitEvent<StateForm>) {
   error.value = "";
   try {
     if (editingState.value) {
-      await $fetch(`/api/projects/${projectId}/states/${editingState.value.id}`, {
+      await serverFetch(`/api/projects/${projectId}/states/${editingState.value.id}`, {
         method: "PATCH",
         body: event.data,
       });
     } else {
-      await $fetch(`/api/projects/${projectId}/states`, {
+      await serverFetch(`/api/projects/${projectId}/states`, {
         method: "POST",
         body: event.data,
       });
@@ -88,7 +90,7 @@ async function save(event: FormSubmitEvent<StateForm>) {
 async function remove(stateId: string) {
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}/states/${stateId}`, { method: "DELETE" });
+    await serverFetch(`/api/projects/${projectId}/states/${stateId}`, { method: "DELETE" });
     await refreshStates();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to delete state";
@@ -98,7 +100,7 @@ async function remove(stateId: string) {
 async function setDefault(stateId: string) {
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}/states/${stateId}/default`, { method: "POST" });
+    await serverFetch(`/api/projects/${projectId}/states/${stateId}/default`, { method: "POST" });
     await refreshStates();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to set default state";
@@ -107,27 +109,25 @@ async function setDefault(stateId: string) {
 
 async function moveUp(index: number) {
   if (index === 0) return;
-  const items = states.value as any[];
-  const newOrder = [...items];
+  const newOrder = [...states.value];
   [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
   await reorder(newOrder);
 }
 
 async function moveDown(index: number) {
-  const items = states.value as any[];
-  if (index === items.length - 1) return;
-  const newOrder = [...items];
+  if (index === states.value.length - 1) return;
+  const newOrder = [...states.value];
   [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
   await reorder(newOrder);
 }
 
-async function reorder(newOrder: any[]) {
+async function reorder(newOrder: StateResponse[]) {
   reordering.value = true;
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}/states/reorder`, {
+    await serverFetch(`/api/projects/${projectId}/states/reorder`, {
       method: "POST",
-      body: { state_ids: newOrder.map((s: any) => s.id) },
+      body: { state_ids: newOrder.map((s) => s.id) },
     });
     await refreshStates();
   } catch (e: any) {
@@ -209,7 +209,7 @@ onUnmounted(resetHeader);
 
     <UCard :ui="{ body: 'p-0' }">
       <div
-        v-for="(state, i) in (states as any[])"
+        v-for="(state, i) in states"
         :key="state.id"
         class="flex items-center gap-3 px-4 py-3 border-b border-(--ui-border) last:border-b-0"
       >
@@ -227,7 +227,7 @@ onUnmounted(resetHeader);
             size="2xs"
             color="neutral"
             variant="ghost"
-            :disabled="i === (states as any[]).length - 1 || reordering"
+            :disabled="i === states.length - 1 || reordering"
             @click="moveDown(i)"
           />
         </div>
@@ -250,7 +250,7 @@ onUnmounted(resetHeader);
         <UButton icon="i-lucide-pencil" size="2xs" color="neutral" variant="ghost" @click="openEdit(state)" />
         <UButton icon="i-lucide-trash-2" size="2xs" color="error" variant="ghost" @click="remove(state.id)" />
       </div>
-      <div v-if="(states as any[]).length === 0" class="px-4 py-8 text-center text-sm text-(--ui-text-muted)">
+      <div v-if="states.length === 0" class="px-4 py-8 text-center text-sm text-(--ui-text-muted)">
         No states yet
       </div>
     </UCard>

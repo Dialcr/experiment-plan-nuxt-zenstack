@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IssueResponse } from "~/server/lib/issue";
+import type { IssueResponse } from "~~/server/lib/issue";
 
 const props = defineProps<{
   issue: IssueResponse;

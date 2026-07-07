@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { IssueResponse, UserView, LabelView } from "~/server/lib/issue";
+import type { IssueResponse, UserView, LabelView } from "~~/server/lib/issue";
+import type { CommentResponse } from "~~/server/lib/comment";
 
 const props = defineProps<{
   issue: IssueResponse | null;
@@ -19,8 +20,10 @@ const open = defineModel<boolean>("open", { default: false });
 
 const saving = ref(false);
 const deleting = ref(false);
+const archiving = ref(false);
 const error = ref("");
 const showDeleteConfirm = ref(false);
+const showArchiveConfirm = ref(false);
 
 const editState = reactive({
   title: "",
@@ -31,8 +34,20 @@ const editState = reactive({
 
 const selectedLabelIds = ref<string[]>([]);
 const selectedAssigneeIds = ref<string[]>([]);
+
+const { data: comments, refresh: refreshComments } = useAsyncData<CommentResponse[]>(
+  "issue-comments",
+  () => {
+    if (!props.issue) return Promise.resolve([]);
+    return serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/comments`);
+  },
+  { default: () => [], watch: [() => props.issue?.id] },
+);
+
 const newComment = ref("");
 const postingComment = ref(false);
+const editingCommentId = ref<string | null>(null);
+const editCommentBody = ref("");
 
 watch(
   () => props.issue,
@@ -54,7 +69,7 @@ async function save() {
   saving.value = true;
   error.value = "";
   try {
-    await $fetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
       method: "PATCH",
       body: {
         title: editState.title,
@@ -78,7 +93,7 @@ async function remove() {
   deleting.value = true;
   error.value = "";
   try {
-    await $fetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
       method: "DELETE",
     });
     showDeleteConfirm.value = false;
@@ -91,21 +106,74 @@ async function remove() {
   }
 }
 
+async function archive() {
+  if (!props.issue) return;
+  archiving.value = true;
+  error.value = "";
+  try {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/archive`, {
+      method: "POST",
+    });
+    showArchiveConfirm.value = false;
+    open.value = false;
+    emit("deleted");
+  } catch (e: any) {
+    error.value = e?.statusMessage ?? e?.message ?? "Failed to archive issue";
+  } finally {
+    archiving.value = false;
+  }
+}
+
 async function postComment() {
   if (!newComment.value.trim() || !props.issue) return;
   postingComment.value = true;
   try {
-    await $fetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/comments`, {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/comments`, {
       method: "POST",
       body: { body: newComment.value.trim() },
     });
     newComment.value = "";
-    emit("saved");
+    await refreshComments();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to post comment";
   } finally {
     postingComment.value = false;
   }
+}
+
+async function updateComment(commentId: string) {
+  if (!editCommentBody.value.trim()) return;
+  try {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`, {
+      method: "PATCH",
+      body: { body: editCommentBody.value.trim() },
+    });
+    editingCommentId.value = null;
+    await refreshComments();
+  } catch (e: any) {
+    error.value = e?.statusMessage ?? e?.message ?? "Failed to update comment";
+  }
+}
+
+async function deleteComment(commentId: string) {
+  try {
+    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`, {
+      method: "DELETE",
+    });
+    await refreshComments();
+  } catch (e: any) {
+    error.value = e?.statusMessage ?? e?.message ?? "Failed to delete comment";
+  }
+}
+
+function startEditComment(comment: CommentResponse) {
+  editingCommentId.value = comment.id;
+  editCommentBody.value = comment.body;
+}
+
+function cancelEditComment() {
+  editingCommentId.value = null;
+  editCommentBody.value = "";
 }
 </script>
 
@@ -197,8 +265,45 @@ async function postComment() {
 
         <div class="space-y-3 border-t border-(--ui-border) pt-4">
           <h4 class="text-sm font-semibold">
-            Comments ({{ issue.comment_count }})
+            Comments ({{ comments.length }})
           </h4>
+
+          <div v-if="comments.length === 0" class="text-xs text-(--ui-text-muted) py-2">
+            No comments yet.
+          </div>
+
+          <div v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
+            <UAvatar
+              :src="comment.author.avatar_url ?? undefined"
+              :alt="comment.author.name"
+              size="sm"
+              class="mt-0.5 shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold">{{ comment.author.name }}</span>
+                <span class="text-[10px] text-(--ui-text-muted)">
+                  {{ new Date(comment.created_at).toLocaleDateString() }}
+                  {{ new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                </span>
+                <span v-if="comment.updated_at !== comment.created_at" class="text-[10px] text-(--ui-text-muted)">(edited)</span>
+              </div>
+
+              <template v-if="editingCommentId === comment.id">
+                <UInput v-model="editCommentBody" class="w-full my-1" autofocus />
+                <div class="flex gap-1.5 mt-1">
+                  <UButton size="2xs" label="Save" @click="updateComment(comment.id)" />
+                  <UButton size="2xs" color="neutral" variant="outline" label="Cancel" @click="cancelEditComment" />
+                </div>
+              </template>
+              <p v-else class="text-sm mt-0.5">{{ comment.body }}</p>
+
+              <div v-if="editingCommentId !== comment.id" class="flex gap-2 mt-1">
+                <UButton size="2xs" color="neutral" variant="ghost" icon="i-lucide-pencil" label="Edit" @click="startEditComment(comment)" />
+                <UButton size="2xs" color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteComment(comment.id)" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <UForm class="flex gap-2" @submit="postComment">
@@ -210,6 +315,14 @@ async function postComment() {
 
     <template #footer>
       <div class="flex gap-2">
+        <UButton
+          v-if="issue"
+          color="warning"
+          variant="outline"
+          icon="i-lucide-archive"
+          label="Archive"
+          @click="showArchiveConfirm = true"
+        />
         <UButton
           v-if="issue"
           color="error"
@@ -229,6 +342,15 @@ async function postComment() {
         />
       </div>
     </template>
+
+    <ConfirmDialog
+      v-model:open="showArchiveConfirm"
+      title="Archive issue?"
+      description="The issue will be hidden from the board and backlog. Its data is preserved."
+      confirm-label="Archive"
+      color="warning"
+      @confirm="archive"
+    />
 
     <ConfirmDialog
       v-model:open="showDeleteConfirm"

@@ -163,7 +163,7 @@ function toResponse(
 }
 
 function buildIssueFilters(projectId: string, filters: IssueListFilters) {
-  const where: Record<string, unknown> = { project_id: projectId };
+  const where: Record<string, unknown> = { project_id: projectId, archived_at: null };
   if (filters.state_id) where.state_id = filters.state_id;
   if (filters.priority) where.priority = filters.priority;
   if (filters.created_by_id) where.created_by_id = filters.created_by_id;
@@ -478,6 +478,34 @@ export async function deleteIssue(
     await db.issue.delete({ where: { id: issueId } });
   } catch (error) {
     return handleOrmError(error, "Failed to delete issue");
+  }
+}
+
+export async function archiveIssue(
+  event: H3Event,
+  projectId: string,
+  issueId: string,
+): Promise<IssueResponse> {
+  try {
+    const user = await getCurrentUser(event);
+    const db = await getUserDb(event);
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { identifier: true },
+    });
+    if (!project)
+      throw createError({ statusCode: 404, statusMessage: "Project not found" });
+    const issue = await db.issue.update({
+      where: { id: issueId },
+      data: {
+        archived_at: new Date(),
+        updated_by_id: user.id,
+      },
+      include: issueInclude as any,
+    });
+    return toResponse(issue as any, project.identifier);
+  } catch (error) {
+    return handleOrmError(error, "Failed to archive issue");
   }
 }
 

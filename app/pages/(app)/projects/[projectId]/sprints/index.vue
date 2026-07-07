@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import type { SprintResponse } from "~/server/lib/sprint";
+import type { SprintResponse } from "~~/server/lib/sprint";
+import type { ProjectResponse } from "~~/server/lib/project";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project } = await useAsyncData(
+const { data: project } = await useAsyncData<ProjectResponse>(
   `project-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}`),
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: sprints, refresh: refreshSprints } = await useAsyncData(
+const { data: sprints, refresh: refreshSprints } = await useAsyncData<SprintResponse[]>(
   `sprints-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}/sprints`),
+  () => serverFetch(`/api/projects/${projectId}/sprints`),
   { default: () => [] },
 );
 
@@ -70,12 +71,12 @@ async function save(event: FormSubmitEvent<SprintForm>) {
     if (event.data.end_date) body.end_date = new Date(event.data.end_date).toISOString();
 
     if (editingSprint.value) {
-      await $fetch(`/api/projects/${projectId}/sprints/${editingSprint.value.id}`, {
+      await serverFetch(`/api/projects/${projectId}/sprints/${editingSprint.value.id}`, {
         method: "PATCH",
         body,
       });
     } else {
-      await $fetch(`/api/projects/${projectId}/sprints`, {
+      await serverFetch(`/api/projects/${projectId}/sprints`, {
         method: "POST",
         body,
       });
@@ -93,7 +94,7 @@ async function save(event: FormSubmitEvent<SprintForm>) {
 async function remove(sprintId: string) {
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}/sprints/${sprintId}`, { method: "DELETE" });
+    await serverFetch(`/api/projects/${projectId}/sprints/${sprintId}`, { method: "DELETE" });
     await refreshSprints();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to delete sprint";
@@ -103,7 +104,7 @@ async function remove(sprintId: string) {
 async function updateStatus(sprintId: string, status: "PLANNED" | "ACTIVE" | "COMPLETED") {
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}/sprints/${sprintId}`, {
+    await serverFetch(`/api/projects/${projectId}/sprints/${sprintId}`, {
       method: "PATCH",
       body: { status },
     });
@@ -114,11 +115,10 @@ async function updateStatus(sprintId: string, status: "PLANNED" | "ACTIVE" | "CO
 }
 
 const groupedSprints = computed(() => {
-  const items = sprints.value as SprintResponse[];
   return {
-    ACTIVE: items.filter((s) => s.status === "ACTIVE"),
-    PLANNED: items.filter((s) => s.status === "PLANNED"),
-    COMPLETED: items.filter((s) => s.status === "COMPLETED"),
+    ACTIVE: sprints.value.filter((s) => s.status === "ACTIVE"),
+    PLANNED: sprints.value.filter((s) => s.status === "PLANNED"),
+    COMPLETED: sprints.value.filter((s) => s.status === "COMPLETED"),
   };
 });
 
@@ -186,7 +186,7 @@ onUnmounted(resetHeader);
       </UForm>
     </UCard>
 
-    <template v-if="(sprints as SprintResponse[]).length === 0 && !showForm">
+    <template v-if="sprints.length === 0 && !showForm">
       <UEmpty icon="i-lucide-iteration-ccw" title="No sprints yet" description="Create a sprint to start planning your iterations." />
     </template>
 

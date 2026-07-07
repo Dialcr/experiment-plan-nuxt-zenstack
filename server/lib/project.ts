@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { H3Event } from "h3";
 import { ORMError, ORMErrorReason } from "@zenstackhq/orm";
 import { createError } from "h3";
-import { getCurrentUser, getUserDb, policyDb } from "./zenstack";
+import { getCurrentUser, getUserDb, policyDb, rawDb } from "./zenstack";
 import type { Project } from "../../zenstack/models";
 
 const DEFAULT_STATES = [
@@ -72,6 +72,7 @@ export type ProjectResponse = {
   name: string;
   identifier: string;
   description: string | null;
+  archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -82,6 +83,7 @@ function toResponse(project: Project): ProjectResponse {
     name: project.name,
     identifier: project.identifier,
     description: project.description ?? null,
+    archived_at: project.archived_at ?? null,
     created_at: project.created_at,
     updated_at: project.updated_at,
   };
@@ -148,9 +150,8 @@ export async function createProject(
 ): Promise<ProjectResponse> {
   try {
     const user = await getCurrentUser(event);
-    const db = policyDb.$setAuth(user);
 
-    const project = await db.project.create({
+    const project = await rawDb.project.create({
       data: {
         name: data.name,
         identifier: data.identifier.toUpperCase(),
@@ -160,7 +161,7 @@ export async function createProject(
       },
     });
 
-    await db.projectMember.create({
+    await rawDb.projectMember.create({
       data: {
         project_id: project.id,
         user_id: user.id,
@@ -170,7 +171,7 @@ export async function createProject(
 
     const states = await Promise.all(
       DEFAULT_STATES.map((s) =>
-        db.state.create({
+        rawDb.state.create({
           data: { ...s, project_id: project.id },
         }),
       ),
@@ -178,12 +179,13 @@ export async function createProject(
 
     const defaultState = states.find((s) => s.is_default);
     if (defaultState) {
-      await db.project.update({
+      await rawDb.project.update({
         where: { id: project.id },
         data: { default_state_id: defaultState.id },
       });
     }
 
+    const db = policyDb.$setAuth(user);
     const created = await db.project.findUniqueOrThrow({
       where: { id: project.id },
     });
@@ -208,6 +210,38 @@ export async function updateProject(
     return toResponse(project);
   } catch (error) {
     return handleOrmError(error, "Failed to update project");
+  }
+}
+
+export async function archiveProject(
+  event: H3Event,
+  projectId: string,
+): Promise<ProjectResponse> {
+  try {
+    const db = await getUserDb(event);
+    const project = await db.project.update({
+      where: { id: projectId },
+      data: { archived_at: new Date() },
+    });
+    return toResponse(project);
+  } catch (error) {
+    return handleOrmError(error, "Failed to archive project");
+  }
+}
+
+export async function unarchiveProject(
+  event: H3Event,
+  projectId: string,
+): Promise<ProjectResponse> {
+  try {
+    const db = await getUserDb(event);
+    const project = await db.project.update({
+      where: { id: projectId },
+      data: { archived_at: null },
+    });
+    return toResponse(project);
+  } catch (error) {
+    return handleOrmError(error, "Failed to unarchive project");
   }
 }
 

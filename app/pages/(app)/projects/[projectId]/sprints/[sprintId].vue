@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import type { IssueResponse } from "~/server/lib/issue";
-import type { SprintResponse } from "~/server/lib/sprint";
+import * as z from "zod";
+import type { IssueResponse } from "~~/server/lib/issue";
+import type { SprintResponse } from "~~/server/lib/sprint";
+import type { ProjectResponse } from "~~/server/lib/project";
+import type { BoardResponse } from "~~/server/lib/board";
+import type { MemberResponse } from "~~/server/lib/member";
+import type { LabelResponse } from "~~/server/lib/label";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -8,31 +13,31 @@ const sprintId = route.params.sprintId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project } = await useAsyncData(
+const { data: project } = await useAsyncData<ProjectResponse>(
   `project-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}`),
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: sprint, error: sprintError, refresh: refreshSprint } = await useAsyncData(
+const { data: sprint, error: sprintError, refresh: refreshSprint } = await useAsyncData<SprintResponse>(
   `sprint-${sprintId}`,
-  () => $fetch(`/api/projects/${projectId}/sprints/${sprintId}`),
+  () => serverFetch(`/api/projects/${projectId}/sprints/${sprintId}`),
 );
 
-const { data: board, refresh: refreshBoard } = await useAsyncData(
+const { data: board, refresh: refreshBoard } = await useAsyncData<BoardResponse>(
   `board-sprint-${sprintId}`,
-  () => $fetch(`/api/projects/${projectId}/board?sprint_id=${sprintId}`),
+  () => serverFetch(`/api/projects/${projectId}/board?sprint_id=${sprintId}`),
   { default: () => ({ columns: [] }) },
 );
 
-const { data: members } = await useAsyncData(
+const { data: members } = await useAsyncData<MemberResponse[]>(
   `members-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}/members`),
+  () => serverFetch(`/api/projects/${projectId}/members`),
   { default: () => [] },
 );
 
-const { data: labels } = await useAsyncData(
+const { data: labels } = await useAsyncData<LabelResponse[]>(
   `labels-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}/labels`),
+  () => serverFetch(`/api/projects/${projectId}/labels`),
   { default: () => [] },
 );
 
@@ -47,21 +52,16 @@ const filters = reactive({
 });
 
 const filteredColumns = computed(() => {
-  return board.value.columns.map((col) => ({
-    ...col,
-    issues: col.issues.filter((issue) => {
-      if (filters.assignee_id && !issue.assignees.some((a) => a.id === filters.assignee_id)) return false;
-      if (filters.priority && issue.priority !== filters.priority) return false;
+  return board.value.columns.map((col) => {
+    const issues = col.issues.filter((issue) => {
+      if (filters.assignee_id && filters.assignee_id !== "ALL" && !issue.assignees.some((a) => a.id === filters.assignee_id)) return false;
+      if (filters.priority && filters.priority !== "ALL" && issue.priority !== filters.priority) return false;
       if (filters.search && !issue.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
       return true;
-    }),
-    issue_count: 0,
-  }));
+    });
+    return { ...col, issues, issue_count: issues.length };
+  });
 });
-
-for (const col of filteredColumns.value) {
-  col.issue_count = col.issues.length;
-}
 
 function openIssue(issue: IssueResponse) {
   selectedIssue.value = issue;
@@ -70,7 +70,7 @@ function openIssue(issue: IssueResponse) {
 
 async function handleDrop(issueId: string, stateId: string) {
   try {
-    await $fetch(`/api/projects/${projectId}/issues/${issueId}/move`, {
+    await serverFetch(`/api/projects/${projectId}/issues/${issueId}/move`, {
       method: "POST",
       body: { state_id: stateId },
     });
@@ -97,7 +97,7 @@ async function createIssue() {
   try {
     const defaultStateId = board.value.columns.find((c) => c.is_default)?.id ?? board.value.columns[0]?.id;
     if (!defaultStateId) throw new Error("No workflow state found");
-    await $fetch(`/api/projects/${projectId}/issues`, {
+    await serverFetch(`/api/projects/${projectId}/issues`, {
       method: "POST",
       body: {
         title: newIssue.title.trim(),
@@ -170,7 +170,7 @@ onUnmounted(resetHeader);
         <USelect
           v-model="filters.priority"
           :items="[
-            { label: 'All priorities', value: '' },
+            { label: 'All priorities', value: 'ALL' },
             { label: 'Urgent', value: 'URGENT' },
             { label: 'High', value: 'HIGH' },
             { label: 'Medium', value: 'MEDIUM' },
@@ -182,7 +182,7 @@ onUnmounted(resetHeader);
         />
         <USelect
           v-model="filters.assignee_id"
-          :items="[{ label: 'All assignees', value: '' }, ...(members as any[]).map((m: any) => ({ label: m.name, value: m.user_id }))]"
+          :items="[{ label: 'All assignees', value: 'ALL' }, ...members.map((m) => ({ label: m.name, value: m.user_id }))]"
           value-attribute="value"
           class="w-44"
         />
@@ -242,8 +242,8 @@ onUnmounted(resetHeader);
         v-model:open="issueDrawerOpen"
         :issue="selectedIssue"
         :states="states"
-        :members="(members as any)"
-        :labels="(labels as any)"
+      :members="members"
+      :labels="labels"
         :project-id="projectId"
         @saved="refreshBoard()"
         @deleted="refreshBoard()"

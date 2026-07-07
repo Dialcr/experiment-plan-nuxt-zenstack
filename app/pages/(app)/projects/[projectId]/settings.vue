@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
+import type { ProjectResponse } from "~~/server/lib/project";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project, refresh: refreshProject } = await useAsyncData(
+const { data: project, refresh: refreshProject } = await useAsyncData<ProjectResponse>(
   `project-${projectId}`,
-  () => $fetch(`/api/projects/${projectId}`),
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
 const saving = ref(false);
 const deleting = ref(false);
+const archiving = ref(false);
 const error = ref("");
 const deleteConfirmOpen = ref(false);
+const archiveConfirmOpen = ref(false);
 
 const updateSchema = z.object({
   name: z.string().trim().min(1, "Project name is required"),
@@ -44,7 +47,7 @@ async function save(event: FormSubmitEvent<UpdateSchema>) {
   saving.value = true;
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}`, {
+    await serverFetch(`/api/projects/${projectId}`, {
       method: "PATCH",
       body: event.data,
     });
@@ -60,12 +63,30 @@ async function remove() {
   deleting.value = true;
   error.value = "";
   try {
-    await $fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+    await serverFetch(`/api/projects/${projectId}`, { method: "DELETE" });
     await navigateTo("/projects");
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to delete project";
   } finally {
     deleting.value = false;
+  }
+}
+
+async function toggleArchive() {
+  archiving.value = true;
+  error.value = "";
+  try {
+    const isArchived = !!project.value?.archived_at;
+    await serverFetch(`/api/projects/${projectId}/archive`, {
+      method: "POST",
+      body: { archived: !isArchived },
+    });
+    archiveConfirmOpen.value = false;
+    await refreshProject();
+  } catch (e: any) {
+    error.value = e?.statusMessage ?? e?.message ?? "Failed to archive project";
+  } finally {
+    archiving.value = false;
   }
 }
 
@@ -119,6 +140,23 @@ onUnmounted(resetHeader);
 
     <UCard class="mt-6">
       <template #header>
+        <h3 class="text-lg font-semibold">Archive project</h3>
+      </template>
+      <p class="text-sm text-(--ui-text-muted) mb-4">
+        {{ project?.archived_at ? 'This project is archived. Unarchive it to make it active again.' : 'Archiving a project hides it from the project list. Its data is preserved.' }}
+      </p>
+      <UButton
+        :color="project?.archived_at ? 'primary' : 'warning'"
+        variant="outline"
+        :icon="project?.archived_at ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
+        :label="project?.archived_at ? 'Unarchive project' : 'Archive project'"
+        :loading="archiving"
+        @click="archiveConfirmOpen = true"
+      />
+    </UCard>
+
+    <UCard class="mt-6">
+      <template #header>
         <h3 class="text-lg font-semibold text-red-500">Danger zone</h3>
       </template>
       <p class="text-sm text-(--ui-text-muted) mb-4">
@@ -133,6 +171,15 @@ onUnmounted(resetHeader);
         @click="deleteConfirmOpen = true"
       />
     </UCard>
+
+    <ConfirmDialog
+      v-model:open="archiveConfirmOpen"
+      :title="project?.archived_at ? 'Unarchive project?' : 'Archive project?'"
+      :description="project?.archived_at ? 'This will make the project visible in the project list again.' : 'The project will be hidden from the project list. All data is preserved.'"
+      :confirm-label="project?.archived_at ? 'Unarchive' : 'Archive'"
+      color="warning"
+      @confirm="toggleArchive"
+    />
 
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"
