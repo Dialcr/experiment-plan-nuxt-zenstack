@@ -10,7 +10,8 @@ export const addMemberSchema = z.object({
 });
 
 export const updateMemberSchema = z.object({
-  role: z.enum(["ADMIN", "MEMBER", "VIEWER"]),
+  role: z.enum(["ADMIN", "MEMBER", "VIEWER"]).optional(),
+  is_active: z.boolean().optional(),
 });
 
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
@@ -103,9 +104,12 @@ export async function updateMember(
 ): Promise<MemberResponse> {
   try {
     const db = await getUserDb(event);
+    const updateData: Record<string, unknown> = {};
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.is_active !== undefined) updateData.is_active = data.is_active;
     const member = await db.projectMember.update({
       where: { project_id_user_id: { project_id: projectId, user_id: userId } },
-      data: { role: data.role },
+      data: updateData,
       include: {
         user: {
           select: { id: true, name: true, email: true, avatar_url: true },

@@ -39,6 +39,10 @@ const createProjectState = reactive<CreateProjectSchema>({
   description: "",
 });
 
+function goToProject(id: string) {
+  navigateTo(`/projects/${id}`);
+}
+
 function resetCreateProjectForm() {
   createProjectState.name = "";
   createProjectState.identifier = "";
@@ -223,6 +227,7 @@ onUnmounted(resetHeader);
           :title="project.name"
           :description="project.description ?? 'No description yet.'"
           :to="`/projects/${project.id}`"
+          @click="goToProject(project.id)"
         >
           <template #footer>
             <UBadge color="neutral" variant="subtle">

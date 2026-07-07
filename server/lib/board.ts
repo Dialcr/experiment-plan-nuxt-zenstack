@@ -47,7 +47,7 @@ export type BoardResponse = {
 };
 
 function buildIssueFilters(projectId: string, filters: IssueListFilters) {
-  const where: Record<string, unknown> = { project_id: projectId };
+  const where: Record<string, unknown> = { project_id: projectId, archived_at: null };
   if (filters.state_id) where.state_id = filters.state_id;
   if (filters.priority) where.priority = filters.priority;
   if (filters.created_by_id) where.created_by_id = filters.created_by_id;
