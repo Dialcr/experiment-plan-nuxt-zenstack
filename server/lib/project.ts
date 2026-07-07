@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { H3Event } from "h3";
-import { ORMError } from "@zenstackhq/orm";
+import { ORMError, ORMErrorReason } from "@zenstackhq/orm";
 import { createError } from "h3";
 import { getCurrentUser, getUserDb, policyDb } from "./zenstack";
 import type { Project } from "../../zenstack/models";
@@ -92,19 +92,19 @@ function handleOrmError(error: unknown, fallbackMessage: string): never {
     throw error;
   }
   if (error instanceof ORMError) {
-    if (error.reason === "REJECTED_BY_POLICY") {
+    if (error.reason === ORMErrorReason.REJECTED_BY_POLICY) {
       throw createError({
         statusCode: 403,
         statusMessage: error.rejectedByPolicyReason ?? "Access denied",
       });
     }
-    if (error.reason === "NOT_FOUND") {
+    if (error.reason === ORMErrorReason.NOT_FOUND) {
       throw createError({
         statusCode: 404,
         statusMessage: "Project not found",
       });
     }
-    if (error.reason === "INVALID_INPUT") {
+    if (error.reason === ORMErrorReason.INVALID_INPUT) {
       throw createError({
         statusCode: 400,
         statusMessage: error.dbErrorMessage ?? "Invalid input",
