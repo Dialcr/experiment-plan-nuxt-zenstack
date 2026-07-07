@@ -3,6 +3,7 @@ name: PR Build Check
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -11,6 +12,7 @@ env:
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
