@@ -1,5 +1,8 @@
 # Deployment
-# Test para ver si esto funciona 
+
+# Test para ver si esto funciona
+
+# Test para ver si esto funciona 2
 
 ## Overview
 
@@ -44,21 +47,21 @@ The Dockerfile uses three stages:
 
 Build-time arguments:
 
-| ARG | Required | Secret? | Purpose |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | Yes | PostgreSQL connection string (build validates it) |
-| `SUPABASE_URL` | Yes | No | Injected at build time for Nuxt configuration |
-| `SUPABASE_PUBLIC_KEY` | Yes | No | Injected at build time for Nuxt configuration |
+| ARG                   | Required | Secret? | Purpose                                           |
+| --------------------- | -------- | ------- | ------------------------------------------------- |
+| `DATABASE_URL`        | Yes      | Yes     | PostgreSQL connection string (build validates it) |
+| `SUPABASE_URL`        | Yes      | No      | Injected at build time for Nuxt configuration     |
+| `SUPABASE_PUBLIC_KEY` | Yes      | No      | Injected at build time for Nuxt configuration     |
 
 > `DATABASE_URL` is used at build time for Nuxt config validation but does **not** persist to the final runner image — only `.output/` is copied to production.
 
 Runtime environment variables (secrets):
 
-| ENV | Required | Purpose |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SUPABASE_URL` | Yes | Supabase project URL |
-| `SUPABASE_PUBLIC_KEY` | Yes | Supabase anon/public key |
+| ENV                   | Required | Purpose                      |
+| --------------------- | -------- | ---------------------------- |
+| `DATABASE_URL`        | Yes      | PostgreSQL connection string |
+| `SUPABASE_URL`        | Yes      | Supabase project URL         |
+| `SUPABASE_PUBLIC_KEY` | Yes      | Supabase anon/public key     |
 
 ---
 
@@ -74,22 +77,22 @@ Runtime environment variables (secrets):
 
 Set these in the Render dashboard under **Environment** → **Build**:
 
-| Variable | Secret? |
-|---|---|
-| `DATABASE_URL` | Yes |
-| `SUPABASE_URL` | No |
-| `SUPABASE_PUBLIC_KEY` | No |
+| Variable              | Secret? |
+| --------------------- | ------- |
+| `DATABASE_URL`        | Yes     |
+| `SUPABASE_URL`        | No      |
+| `SUPABASE_PUBLIC_KEY` | No      |
 
 ### Runtime Environment Variables
 
 Set these in the Render dashboard under **Environment** → **Runtime**:
 
-| Variable | Type | Notes |
-|---|---|---|
-| `DATABASE_URL` | Secret | Never commit to version control |
-| `SUPABASE_URL` | Standard | Your Supabase project URL |
-| `SUPABASE_PUBLIC_KEY` | Standard | Your Supabase anon key |
-| `NODE_ENV` | Standard | Set to `production` |
+| Variable              | Type     | Notes                           |
+| --------------------- | -------- | ------------------------------- |
+| `DATABASE_URL`        | Secret   | Never commit to version control |
+| `SUPABASE_URL`        | Standard | Your Supabase project URL       |
+| `SUPABASE_PUBLIC_KEY` | Standard | Your Supabase anon key          |
+| `NODE_ENV`            | Standard | Set to `production`             |
 
 ### Start Command
 
@@ -109,12 +112,12 @@ Render provides a Deploy Hook URL in the dashboard. Copy it and add as a GitHub 
 
 Configure these in the repository under **Settings → Secrets and variables → Actions**:
 
-| Secret | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string for production database |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_PUBLIC_KEY` | Supabase anon/public key |
-| `RENDER_DEPLOY_HOOK` | Render Deploy Hook URL for triggering deployments |
+| Secret                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `DATABASE_URL`        | PostgreSQL connection string for production database |
+| `SUPABASE_URL`        | Supabase project URL                                 |
+| `SUPABASE_PUBLIC_KEY` | Supabase anon/public key                             |
+| `RENDER_DEPLOY_HOOK`  | Render Deploy Hook URL for triggering deployments    |
 
 ---
 
@@ -123,10 +126,12 @@ Configure these in the repository under **Settings → Secrets and variables →
 ### CI (`ci.yml`)
 
 **Triggers:**
+
 - Pull requests to any branch
 - Pushes to all branches except `main`
 
 **Pipeline:**
+
 1. Checkout repository
 2. Enable Corepack
 3. Setup Node.js 22 (with pnpm caching)
@@ -144,9 +149,11 @@ The old `pr-build.yml` is preserved alongside `ci.yml` for backwards compatibili
 ### Deploy (`deploy.yml`)
 
 **Trigger:**
+
 - Push to `main`
 
 **Pipeline:**
+
 1. Checkout repository
 2. Enable Corepack
 3. Setup Node.js 22 (with pnpm caching)
@@ -191,9 +198,9 @@ Developer pushes to main
 
 ## Required Environment Variables
 
-| Variable | Where Used | Secret? |
-|---|---|---|
-| `DATABASE_URL` | Build + Runtime | Yes |
-| `SUPABASE_URL` | Build + Runtime | No (public URL) |
-| `SUPABASE_PUBLIC_KEY` | Build + Runtime | No (public anon key) |
-| `RENDER_DEPLOY_HOOK` | GitHub Actions only | Yes |
+| Variable              | Where Used          | Secret?              |
+| --------------------- | ------------------- | -------------------- |
+| `DATABASE_URL`        | Build + Runtime     | Yes                  |
+| `SUPABASE_URL`        | Build + Runtime     | No (public URL)      |
+| `SUPABASE_PUBLIC_KEY` | Build + Runtime     | No (public anon key) |
+| `RENDER_DEPLOY_HOOK`  | GitHub Actions only | Yes                  |
