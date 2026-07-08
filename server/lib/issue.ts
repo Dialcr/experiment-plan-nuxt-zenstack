@@ -12,6 +12,7 @@ export const createIssueSchema = z.object({
   description: z.string().trim().optional(),
   state_id: z.string().min(1).optional(),
   priority: priorityEnum.optional().default("NONE"),
+  sprint_id: z.string().min(1).optional().nullable(),
   label_ids: z.array(z.string().min(1)).optional(),
   assignee_ids: z.array(z.string().min(1)).optional(),
   start_date: z.string().datetime().optional().nullable(),
@@ -24,6 +25,7 @@ export const updateIssueSchema = z.object({
   description: z.string().trim().optional().nullable(),
   state_id: z.string().min(1).optional(),
   priority: priorityEnum.optional(),
+  sprint_id: z.string().min(1).optional().nullable(),
   label_ids: z.array(z.string().min(1)).optional(),
   assignee_ids: z.array(z.string().min(1)).optional(),
   start_date: z.string().datetime().optional().nullable(),
@@ -67,6 +69,7 @@ export type IssueResponse = {
   sort_order: number;
   priority: string;
   state_id: string;
+  sprint_id: string | null;
   project_id: string;
   parent_id: string | null;
   start_date: string | null;
@@ -148,6 +151,7 @@ function toResponse(
     sort_order: issue.sort_order,
     priority: issue.priority,
     state_id: issue.state_id,
+    sprint_id: issue.sprint_id ?? null,
     project_id: issue.project_id,
     parent_id: issue.parent_id ?? null,
     start_date: issue.start_date?.toISOString() ?? null,
@@ -322,7 +326,8 @@ export async function createIssue(
         project_id: projectId,
         state_id: stateId,
         title: data.title,
-        description: data.description ?? null,
+        dprint_id: data.sprint_id ?? null,
+        sescription: data.description ?? null,
         priority: data.priority ?? "NONE",
         sequence_id: nextSeq,
         sort_order: nextSort,
@@ -406,6 +411,7 @@ export async function updateIssue(
       updateData.description = data.description;
     if (data.priority !== undefined) updateData.priority = data.priority;
     if (data.state_id !== undefined) updateData.state_id = data.state_id;
+    if (data.sprint_id !== undefined) updateData.sprint_id = data.sprint_id;
     if (data.start_date !== undefined)
       updateData.start_date = data.start_date
         ? new Date(data.start_date)

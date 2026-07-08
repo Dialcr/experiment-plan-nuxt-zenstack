@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { IssueResponse, UserView, LabelView } from "~~/server/lib/issue";
+import type { IssueResponse } from "~~/server/lib/issue";
 import type { CommentResponse } from "~~/server/lib/comment";
+import type { SprintResponse } from "~~/server/lib/sprint";
 
 const props = defineProps<{
   issue: IssueResponse | null;
   states: Array<{ id: string; name: string; color: string; group: string }>;
   members: Array<{ user_id: string; name: string; role: string }>;
   labels: Array<{ id: string; name: string; color: string }>;
+  sprints: SprintResponse[];
   projectId: string;
 }>();
 
@@ -30,6 +32,7 @@ const editState = reactive({
   description: "",
   priority: "NONE",
   state_id: "",
+  sprint_id: null as string | null,
 });
 
 const selectedLabelIds = ref<string[]>([]);
@@ -57,6 +60,7 @@ watch(
       editState.description = issue.description ?? "";
       editState.priority = issue.priority;
       editState.state_id = issue.state_id;
+      editState.sprint_id = issue.sprint_id;
       selectedLabelIds.value = issue.labels.map((l) => l.id);
       selectedAssigneeIds.value = issue.assignees.map((a) => a.id);
     }
@@ -75,6 +79,7 @@ async function save() {
         title: editState.title,
         description: editState.description || null,
         priority: editState.priority,
+        sprint_id: editState.sprint_id,
         state_id: editState.state_id,
         label_ids: selectedLabelIds.value,
         assignee_ids: selectedAssigneeIds.value,
@@ -186,7 +191,7 @@ function cancelEditComment() {
     @update:open="(v: boolean) => { if (!v) emit('close'); }"
   >
     <template v-if="!issue">
-      <div class="flex items-center justify-center h-32 text-sm text-(--ui-text-muted)">
+      <div class="flex items-center justify-center h-32 text-sm text-muted">
         Select an issue
       </div>
     </template>
@@ -227,6 +232,18 @@ function cancelEditComment() {
           </UFormField>
         </div>
 
+        <UFormField label="Sprint">
+          <USelect
+            v-model="editState.sprint_id"
+            :items="[
+              { label: 'No sprint', value: null },
+              ...sprints.map((s) => ({ label: s.name, value: s.id })),
+            ]"
+            value-attribute="value"
+            placeholder="Select sprint"
+          />
+        </UFormField>
+
         <UFormField label="Assignees">
           <USelect
             v-model="selectedAssigneeIds"
@@ -254,8 +271,8 @@ function cancelEditComment() {
           </div>
         </UFormField>
 
-        <div class="flex items-center gap-2 pt-2 border-t border-(--ui-border)">
-          <span class="text-xs text-(--ui-text-muted)">
+        <div class="flex items-center gap-2 pt-2 border-t border-default">
+          <span class="text-xs text-muted">
             Created {{ new Date(issue.created_at).toLocaleDateString() }}
           </span>
           <span v-if="issue.completed_at" class="text-xs text-green-500 ml-auto">
@@ -263,12 +280,12 @@ function cancelEditComment() {
           </span>
         </div>
 
-        <div class="space-y-3 border-t border-(--ui-border) pt-4">
+        <div class="space-y-3 border-t border-default pt-4">
           <h4 class="text-sm font-semibold">
             Comments ({{ comments.length }})
           </h4>
 
-          <div v-if="comments.length === 0" class="text-xs text-(--ui-text-muted) py-2">
+          <div v-if="comments.length === 0" class="text-xs text-muted py-2">
             No comments yet.
           </div>
 
@@ -282,11 +299,11 @@ function cancelEditComment() {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-semibold">{{ comment.author.name }}</span>
-                <span class="text-[10px] text-(--ui-text-muted)">
+                <span class="text-[10px] text-muted">
                   {{ new Date(comment.created_at).toLocaleDateString() }}
                   {{ new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                 </span>
-                <span v-if="comment.updated_at !== comment.created_at" class="text-[10px] text-(--ui-text-muted)">(edited)</span>
+                <span v-if="comment.updated_at !== comment.created_at" class="text-[10px] text-muted">(edited)</span>
               </div>
 
               <template v-if="editingCommentId === comment.id">

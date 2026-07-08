@@ -18,6 +18,7 @@ type BoardIssue = {
   priority: string;
   state_id: string;
   project_id: string;
+  sprint_id: string | null;
   parent_id: string | null;
   start_date: string | null;
   due_date: string | null;
@@ -139,6 +140,7 @@ export async function getBoard(
         priority: issue.priority,
         state_id: issue.state_id,
         project_id: issue.project_id,
+        sprint_id: issue.sprint_id ?? null,
         parent_id: issue.parent_id ?? null,
         start_date: issue.start_date?.toISOString() ?? null,
         due_date: issue.due_date?.toISOString() ?? null,

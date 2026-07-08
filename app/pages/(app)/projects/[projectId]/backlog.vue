@@ -4,6 +4,7 @@ import type { ProjectResponse } from "~~/server/lib/project";
 import type { MemberResponse } from "~~/server/lib/member";
 import type { StateResponse } from "~~/server/lib/state";
 import type { LabelResponse } from "~~/server/lib/label";
+import type { SprintResponse } from "~~/server/lib/sprint";
 
 const route = useRoute();
 const projectId = route.params.projectId as string;
@@ -18,6 +19,12 @@ const { data: project } = await useAsyncData<ProjectResponse>(
 const { data: members } = await useAsyncData<MemberResponse[]>(
   `members-${projectId}`,
   () => serverFetch(`/api/projects/${projectId}/members`),
+  { default: () => [] },
+);
+
+const { data: sprints } = await useAsyncData<SprintResponse[]>(
+  `sprints-${projectId}`,
+  () => serverFetch(`/api/projects/${projectId}/sprints`),
   { default: () => [] },
 );
 
@@ -76,6 +83,7 @@ const newIssue = reactive({
   description: "",
   priority: "NONE",
   state_id: "",
+  sprint_id: null as string | null,
 });
 
 async function createIssue() {
@@ -94,13 +102,14 @@ async function createIssue() {
         title: newIssue.title.trim(),
         description: newIssue.description || undefined,
         priority: newIssue.priority,
-        state_id: defaultStateId,
+        sprint_id: newIssue.sprint_id || undefined,
       },
     });
     newIssue.title = "";
     newIssue.description = "";
     newIssue.priority = "NONE";
     newIssue.state_id = "";
+    newIssue.sprint_id = null;
     createIssueOpen.value = false;
     await refreshIssues();
   } catch (e: any) {
@@ -227,7 +236,7 @@ onUnmounted(resetHeader);
       <table class="w-full text-sm">
         <thead>
           <tr
-            class="border-b border-(--ui-border) text-left text-xs text-(--ui-text-muted) uppercase tracking-wider"
+            class="border-b border-default text-left text-xs text-muted uppercase tracking-wider"
           >
             <th class="px-4 py-3 font-medium w-24">Key</th>
             <th class="px-4 py-3 font-medium">Title</th>
@@ -240,10 +249,10 @@ onUnmounted(resetHeader);
           <tr
             v-for="issue in issues"
             :key="issue.id"
-            class="border-b border-(--ui-border) hover:bg-(--ui-bg-elevated) cursor-pointer transition-colors"
+            class="border-b border-default hover:bg-elevated cursor-pointer transition-colors"
             @click="openIssue(issue)"
           >
-            <td class="px-4 py-3 font-mono text-xs text-(--ui-text-muted)">
+            <td class="px-4 py-3 font-mono text-xs text-muted">
               {{ issue.key }}
             </td>
             <td class="px-4 py-3 font-medium">{{ issue.title }}</td>
@@ -271,7 +280,7 @@ onUnmounted(resetHeader);
                 v-if="issue.assignees.length"
                 :users="issue.assignees"
               />
-              <span v-else class="text-xs text-(--ui-text-muted)"
+              <span v-else class="text-xs text-muted"
                 >Unassigned</span
               >
             </td>
@@ -279,7 +288,7 @@ onUnmounted(resetHeader);
           <tr v-if="issues.length === 0">
             <td
               colspan="5"
-              class="px-4 py-12 text-center text-sm text-(--ui-text-muted)"
+              class="px-4 py-12 text-center text-sm text-muted"
             >
               No issues found
             </td>
@@ -294,6 +303,7 @@ onUnmounted(resetHeader);
       :states="states as any"
       :members="members"
       :labels="labels"
+      :sprints="sprints"
       :project-id="projectId"
       @saved="refreshIssues()"
       @deleted="refreshIssues()"
@@ -311,6 +321,7 @@ onUnmounted(resetHeader);
             newIssue.description = '';
             newIssue.priority = 'NONE';
             newIssue.state_id = '';
+            newIssue.sprint_id = null;
             createError = '';
           }
         }
@@ -358,6 +369,17 @@ onUnmounted(resetHeader);
               { label: 'Urgent', value: 'URGENT' },
             ]"
             value-attribute="value"
+          />
+        </UFormField>
+        <UFormField label="Sprint">
+          <USelect
+            v-model="newIssue.sprint_id"
+            :items="[
+              { label: 'No sprint', value: null },
+              ...sprints.map((s) => ({ label: s.name, value: s.id })),
+            ]"
+            value-attribute="value"
+            placeholder="Select sprint (optional)"
           />
         </UFormField>
       </div>
