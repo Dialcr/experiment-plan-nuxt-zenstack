@@ -167,11 +167,17 @@ function toResponse(
 }
 
 function buildIssueFilters(projectId: string, filters: IssueListFilters) {
-  const where: Record<string, unknown> = { project_id: projectId, archived_at: null };
+  const where: Record<string, unknown> = {
+    project_id: projectId,
+    archived_at: null,
+  };
   if (filters.state_id) where.state_id = filters.state_id;
   if (filters.priority) where.priority = filters.priority;
   if (filters.created_by_id) where.created_by_id = filters.created_by_id;
-  if (filters.sprint_id) where.sprint_id = filters.sprint_id;
+  // Handle sprint_id filter - "null" string means issues without sprint
+  if (filters.sprint_id !== undefined) {
+    where.sprint_id = filters.sprint_id === "null" ? null : filters.sprint_id;
+  }
   if (filters.due_date) where.due_date = new Date(filters.due_date);
   if (filters.assignee_id) {
     where.assignees = { some: { user_id: filters.assignee_id } };
@@ -326,8 +332,8 @@ export async function createIssue(
         project_id: projectId,
         state_id: stateId,
         title: data.title,
-        dprint_id: data.sprint_id ?? null,
-        sescription: data.description ?? null,
+        sprint_id: data.sprint_id ?? null,
+        description: data.description ?? null,
         priority: data.priority ?? "NONE",
         sequence_id: nextSeq,
         sort_order: nextSort,
@@ -500,7 +506,10 @@ export async function archiveIssue(
       select: { identifier: true },
     });
     if (!project)
-      throw createError({ statusCode: 404, statusMessage: "Project not found" });
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Project not found",
+      });
     const issue = await db.issue.update({
       where: { id: issueId },
       data: {

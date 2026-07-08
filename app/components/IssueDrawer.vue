@@ -38,13 +38,17 @@ const editState = reactive({
 const selectedLabelIds = ref<string[]>([]);
 const selectedAssigneeIds = ref<string[]>([]);
 
-const { data: comments, refresh: refreshComments } = useAsyncData<CommentResponse[]>(
-  "issue-comments",
+const { data: comments, refresh: refreshComments } = useAsyncData<
+  CommentResponse[]
+>(
+  () => `issue-comments-${props.issue?.id}`,
   () => {
     if (!props.issue) return Promise.resolve([]);
-    return serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/comments`);
+    return serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue.id}/comments`,
+    );
   },
-  { default: () => [], watch: [() => props.issue?.id] },
+  { default: () => [], watch: [() => props.issue?.id], immediate: true },
 );
 
 const newComment = ref("");
@@ -73,18 +77,21 @@ async function save() {
   saving.value = true;
   error.value = "";
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
-      method: "PATCH",
-      body: {
-        title: editState.title,
-        description: editState.description || null,
-        priority: editState.priority,
-        sprint_id: editState.sprint_id,
-        state_id: editState.state_id,
-        label_ids: selectedLabelIds.value,
-        assignee_ids: selectedAssigneeIds.value,
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue.id}`,
+      {
+        method: "PATCH",
+        body: {
+          title: editState.title,
+          description: editState.description || null,
+          priority: editState.priority,
+          sprint_id: editState.sprint_id,
+          state_id: editState.state_id,
+          label_ids: selectedLabelIds.value,
+          assignee_ids: selectedAssigneeIds.value,
+        },
       },
-    });
+    );
     emit("saved");
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to save issue";
@@ -98,9 +105,12 @@ async function remove() {
   deleting.value = true;
   error.value = "";
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}`, {
-      method: "DELETE",
-    });
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue.id}`,
+      {
+        method: "DELETE",
+      },
+    );
     showDeleteConfirm.value = false;
     open.value = false;
     emit("deleted");
@@ -116,9 +126,12 @@ async function archive() {
   archiving.value = true;
   error.value = "";
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/archive`, {
-      method: "POST",
-    });
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue.id}/archive`,
+      {
+        method: "POST",
+      },
+    );
     showArchiveConfirm.value = false;
     open.value = false;
     emit("deleted");
@@ -133,10 +146,13 @@ async function postComment() {
   if (!newComment.value.trim() || !props.issue) return;
   postingComment.value = true;
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue.id}/comments`, {
-      method: "POST",
-      body: { body: newComment.value.trim() },
-    });
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue.id}/comments`,
+      {
+        method: "POST",
+        body: { body: newComment.value.trim() },
+      },
+    );
     newComment.value = "";
     await refreshComments();
   } catch (e: any) {
@@ -149,10 +165,13 @@ async function postComment() {
 async function updateComment(commentId: string) {
   if (!editCommentBody.value.trim()) return;
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`, {
-      method: "PATCH",
-      body: { body: editCommentBody.value.trim() },
-    });
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`,
+      {
+        method: "PATCH",
+        body: { body: editCommentBody.value.trim() },
+      },
+    );
     editingCommentId.value = null;
     await refreshComments();
   } catch (e: any) {
@@ -162,9 +181,12 @@ async function updateComment(commentId: string) {
 
 async function deleteComment(commentId: string) {
   try {
-    await serverFetch(`/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`, {
-      method: "DELETE",
-    });
+    await serverFetch(
+      `/api/projects/${props.projectId}/issues/${props.issue!.id}/comments/${commentId}`,
+      {
+        method: "DELETE",
+      },
+    );
     await refreshComments();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to delete comment";
@@ -188,7 +210,11 @@ function cancelEditComment() {
     :title="issue ? issue.key : 'Issue'"
     :description="issue?.title"
     content-class="w-full sm:max-w-lg"
-    @update:open="(v: boolean) => { if (!v) emit('close'); }"
+    @update:open="
+      (v: boolean) => {
+        if (!v) emit('close');
+      }
+    "
   >
     <template v-if="!issue">
       <div class="flex items-center justify-center h-32 text-sm text-muted">
@@ -197,7 +223,13 @@ function cancelEditComment() {
     </template>
 
     <template v-else>
-      <UAlert v-if="error" color="error" icon="i-lucide-alert-circle" :description="error" class="mb-4" />
+      <UAlert
+        v-if="error"
+        color="error"
+        icon="i-lucide-alert-circle"
+        :description="error"
+        class="mb-4"
+      />
 
       <div class="space-y-5">
         <UFormField label="Title">
@@ -260,11 +292,15 @@ function cancelEditComment() {
               v-for="label in labels"
               :key="label.id"
               size="xs"
-              :variant="selectedLabelIds.includes(label.id) ? 'solid' : 'outline'"
+              :variant="
+                selectedLabelIds.includes(label.id) ? 'solid' : 'outline'
+              "
               :label="label.name"
               @click="
                 selectedLabelIds.includes(label.id)
-                  ? selectedLabelIds = selectedLabelIds.filter((id) => id !== label.id)
+                  ? (selectedLabelIds = selectedLabelIds.filter(
+                      (id) => id !== label.id,
+                    ))
                   : selectedLabelIds.push(label.id)
               "
             />
@@ -275,7 +311,10 @@ function cancelEditComment() {
           <span class="text-xs text-muted">
             Created {{ new Date(issue.created_at).toLocaleDateString() }}
           </span>
-          <span v-if="issue.completed_at" class="text-xs text-green-500 ml-auto">
+          <span
+            v-if="issue.completed_at"
+            class="text-xs text-green-500 ml-auto"
+          >
             Completed {{ new Date(issue.completed_at).toLocaleDateString() }}
           </span>
         </div>
@@ -289,7 +328,11 @@ function cancelEditComment() {
             No comments yet.
           </div>
 
-          <div v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
+          <div
+            v-for="comment in comments"
+            :key="comment.id"
+            class="flex gap-2.5"
+          >
             <UAvatar
               :src="comment.author.avatar_url ?? undefined"
               :alt="comment.author.name"
@@ -298,34 +341,85 @@ function cancelEditComment() {
             />
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold">{{ comment.author.name }}</span>
+                <span class="text-xs font-semibold">{{
+                  comment.author.name
+                }}</span>
                 <span class="text-[10px] text-muted">
                   {{ new Date(comment.created_at).toLocaleDateString() }}
-                  {{ new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                  {{
+                    new Date(comment.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  }}
                 </span>
-                <span v-if="comment.updated_at !== comment.created_at" class="text-[10px] text-muted">(edited)</span>
+                <span
+                  v-if="comment.updated_at !== comment.created_at"
+                  class="text-[10px] text-muted"
+                  >(edited)</span
+                >
               </div>
 
               <template v-if="editingCommentId === comment.id">
-                <UInput v-model="editCommentBody" class="w-full my-1" autofocus />
+                <UInput
+                  v-model="editCommentBody"
+                  class="w-full my-1"
+                  autofocus
+                />
                 <div class="flex gap-1.5 mt-1">
-                  <UButton size="2xs" label="Save" @click="updateComment(comment.id)" />
-                  <UButton size="2xs" color="neutral" variant="outline" label="Cancel" @click="cancelEditComment" />
+                  <UButton
+                    size="2xs"
+                    label="Save"
+                    @click="updateComment(comment.id)"
+                  />
+                  <UButton
+                    size="2xs"
+                    color="neutral"
+                    variant="outline"
+                    label="Cancel"
+                    @click="cancelEditComment"
+                  />
                 </div>
               </template>
               <p v-else class="text-sm mt-0.5">{{ comment.body }}</p>
 
-              <div v-if="editingCommentId !== comment.id" class="flex gap-2 mt-1">
-                <UButton size="2xs" color="neutral" variant="ghost" icon="i-lucide-pencil" label="Edit" @click="startEditComment(comment)" />
-                <UButton size="2xs" color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteComment(comment.id)" />
+              <div
+                v-if="editingCommentId !== comment.id"
+                class="flex gap-2 mt-1"
+              >
+                <UButton
+                  size="2xs"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-lucide-pencil"
+                  label="Edit"
+                  @click="startEditComment(comment)"
+                />
+                <UButton
+                  size="2xs"
+                  color="error"
+                  variant="ghost"
+                  icon="i-lucide-trash-2"
+                  label="Delete"
+                  @click="deleteComment(comment.id)"
+                />
               </div>
             </div>
           </div>
         </div>
 
         <UForm class="flex gap-2" @submit="postComment">
-          <UInput v-model="newComment" placeholder="Add a comment..." class="flex-1" />
-          <UButton type="submit" icon="i-lucide-send" :loading="postingComment" size="sm" />
+          <UInput
+            v-model="newComment"
+            placeholder="Add a comment..."
+            class="flex-1"
+          />
+          <UButton
+            type="submit"
+            icon="i-lucide-send"
+            :loading="postingComment"
+            size="sm"
+          />
         </UForm>
       </div>
     </template>

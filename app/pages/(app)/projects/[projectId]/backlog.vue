@@ -280,16 +280,11 @@ onUnmounted(resetHeader);
                 v-if="issue.assignees.length"
                 :users="issue.assignees"
               />
-              <span v-else class="text-xs text-muted"
-                >Unassigned</span
-              >
+              <span v-else class="text-xs text-muted">Unassigned</span>
             </td>
           </tr>
           <tr v-if="issues.length === 0">
-            <td
-              colspan="5"
-              class="px-4 py-12 text-center text-sm text-muted"
-            >
+            <td colspan="5" class="px-4 py-12 text-center text-sm text-muted">
               No issues found
             </td>
           </tr>
