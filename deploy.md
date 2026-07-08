@@ -14,6 +14,7 @@ Stack: Nuxt 4 + Vue 3 + Nitro + ZenStack + PostgreSQL (Supabase) + Supabase Auth
 
 ```bash
 docker build \
+  --build-arg DATABASE_URL=<your-database-url> \
   --build-arg SUPABASE_URL=<your-supabase-url> \
   --build-arg SUPABASE_PUBLIC_KEY=<your-supabase-public-key> \
   -t experiment-plan .
@@ -40,12 +41,15 @@ The Dockerfile uses three stages:
 2. **build** — generates ZenStack artifacts and builds the Nuxt application
 3. **runner** — minimal production image containing only the `.output` directory
 
-Build-time arguments (public values):
+Build-time arguments:
 
-| ARG | Required | Purpose |
-|---|---|---|
-| `SUPABASE_URL` | Yes | Injected at build time for Nuxt configuration |
-| `SUPABASE_PUBLIC_KEY` | Yes | Injected at build time for Nuxt configuration |
+| ARG | Required | Secret? | Purpose |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | Yes | PostgreSQL connection string (build validates it) |
+| `SUPABASE_URL` | Yes | No | Injected at build time for Nuxt configuration |
+| `SUPABASE_PUBLIC_KEY` | Yes | No | Injected at build time for Nuxt configuration |
+
+> `DATABASE_URL` is used at build time for Nuxt config validation but does **not** persist to the final runner image — only `.output/` is copied to production.
 
 Runtime environment variables (secrets):
 
@@ -67,14 +71,17 @@ Runtime environment variables (secrets):
 
 ### Build-time Environment Variables
 
-Set these in the Render dashboard under **Environment** (Build):
+Set these in the Render dashboard under **Environment** → **Build**:
 
-- `SUPABASE_URL`
-- `SUPABASE_PUBLIC_KEY`
+| Variable | Secret? |
+|---|---|
+| `DATABASE_URL` | Yes |
+| `SUPABASE_URL` | No |
+| `SUPABASE_PUBLIC_KEY` | No |
 
 ### Runtime Environment Variables
 
-Set these in the Render dashboard under **Environment**:
+Set these in the Render dashboard under **Environment** → **Runtime**:
 
 | Variable | Type | Notes |
 |---|---|---|
