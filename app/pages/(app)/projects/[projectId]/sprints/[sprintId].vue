@@ -179,6 +179,7 @@ onUnmounted(resetHeader);
       color="error"
       icon="i-lucide-alert-circle"
       title="Failed to load sprint"
+      :description="sprintError?.statusMessage ?? sprintError?.message ?? ''"
     />
 
     <template v-else>

@@ -9,11 +9,14 @@ const projectId = route.params.projectId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project } = await useAsyncData<ProjectResponse>(`project-${projectId}`, () =>
-  serverFetch(`/api/projects/${projectId}`),
+const { data: project } = await useAsyncData<ProjectResponse>(
+  `project-${projectId}`,
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: labels, refresh: refreshLabels } = await useAsyncData<LabelResponse[]>(
+const { data: labels, refresh: refreshLabels } = await useAsyncData<
+  LabelResponse[]
+>(
   `labels-${projectId}`,
   () => serverFetch(`/api/projects/${projectId}/labels`),
   { default: () => [] },
@@ -123,7 +126,7 @@ onUnmounted(resetHeader);
 </script>
 
 <template>
-  <UContainer class="py-6 max-w-2xl">
+  <UContainer class="py-6">
     <ProjectSubNav
       :project-id="projectId"
       :project-name="project?.name ?? 'Loading...'"

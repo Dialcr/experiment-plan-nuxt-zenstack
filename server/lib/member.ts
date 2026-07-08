@@ -133,7 +133,6 @@ export async function removeMember(
       where: { project_id_user_id: { project_id: projectId, user_id: userId } },
     });
   } catch (error) {
-    return handleOrmError("PINGAAAAAA", "Failed to remove member");
-    // return handleOrmError(error, "Failed to remove member");
+    return handleOrmError(error, "Failed to remove member");
   }
 }

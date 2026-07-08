@@ -9,7 +9,7 @@ import type { LabelResponse } from "~~/server/lib/label";
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
-const { setHeader, resetHeader } = useAppHeader();
+const { setHeader, setPrimaryAction, resetHeader } = useAppHeader();
 
 const {
   data: project,
@@ -77,6 +77,10 @@ const filteredColumns = computed(() => {
     return { ...col, issues, issue_count: issues.length };
   });
 });
+
+function openCreateIssueDrawer() {
+  createIssueOpen.value = true;
+}
 
 function openIssue(issue: IssueResponse) {
   selectedIssue.value = issue;
@@ -149,6 +153,14 @@ const allStates = computed(() => [
   { id: "ALL", name: "All states", color: "", group: "" },
   ...states.value,
 ]);
+
+setPrimaryAction(
+  {
+    label: "New issue",
+    icon: "i-lucide-plus",
+  },
+  openCreateIssueDrawer,
+);
 
 watch(
   () => project.value,
