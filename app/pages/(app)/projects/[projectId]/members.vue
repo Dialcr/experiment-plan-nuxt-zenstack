@@ -126,7 +126,7 @@ onUnmounted(resetHeader);
 </script>
 
 <template>
-  <UContainer class="py-6 max-w-2xl">
+  <UContainer class="py-6">
     <ProjectSubNav
       :project-id="projectId"
       :project-name="project?.name ?? 'Loading...'"
