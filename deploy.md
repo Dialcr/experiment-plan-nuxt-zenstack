@@ -149,21 +149,18 @@ The old `pr-build.yml` is preserved alongside `ci.yml` for backwards compatibili
 ### Deploy (`deploy.yml`)
 
 **Trigger:**
-
 - Push to `main`
 
 **Pipeline:**
-
 1. Checkout repository
 2. Enable Corepack
 3. Setup Node.js 22 (with pnpm caching)
 4. Install dependencies (`pnpm install --frozen-lockfile`)
 5. Generate ZenStack artifacts (`pnpm zen generate`)
 6. Build (`pnpm build`)
-7. Run database migrations (`pnpm zen migrate deploy`)
-8. Trigger Render deployment via Deploy Hook (`curl POST`)
+7. Trigger Render deployment via Deploy Hook (`curl POST`)
 
-Database migrations run **before** the new application version is deployed, ensuring the database schema is ready for the incoming code.
+Database migrations run **inside the Docker build** on Render (not in GitHub Actions), because Supabase free-tier only supports IPv6 connections and GitHub Actions runners use IPv4.
 
 ---
 
@@ -180,18 +177,17 @@ Developer pushes to main
         ├── 3. ZenStack generate
         ├── 4. Build (nuxt build)
         │
-        ├── 5. Run database migrations (zen migrate deploy)
-        │         │
-        │         ├── Success ──► 6. Trigger Render Deploy Hook
-        │         │                    │
-        │         │                    ▼
-        │         │              Render builds Docker image
-        │         │              and deploys new version
-        │         │
-        │         └── Failure ──► Pipeline stops.
-        │                         Migration must be fixed manually.
-        │
-        └── Any step fails ──► Pipeline stops. No deployment.
+        └── 5. Trigger Render Deploy Hook
+                    │
+                    ▼
+            Render builds Docker image
+                    │
+                    ├── Install deps
+                    ├── ZenStack generate
+                    ├── Build (nuxt build)
+                    ├── Run migrations (zen migrate deploy) ← Supabase IPv6
+                    │
+                    └── Deploy runner image
 ```
 
 ---

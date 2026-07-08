@@ -34,8 +34,5 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run database migrations
-        run: pnpm zen migrate deploy
-
       - name: Trigger Render deployment
         run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
