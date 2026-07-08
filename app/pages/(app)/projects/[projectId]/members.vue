@@ -4,6 +4,13 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import type { ProjectResponse } from "~~/server/lib/project";
 import type { MemberResponse } from "~~/server/lib/member";
 
+type AvailableUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url: string | null;
+};
+
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
@@ -22,17 +29,21 @@ const { data: members, refresh: refreshMembers } = await useAsyncData<
   { default: () => [] },
 );
 
+const { data: availableUsers, refresh: refreshAvailableUsers } = await useAsyncData<
+  AvailableUser[]
+>(
+  `available-users-${projectId}`,
+  () => serverFetch(`/api/projects/${projectId}/available-users`),
+  { default: () => [] },
+);
+
 const saving = ref(false);
 const error = ref("");
 const showForm = ref(false);
-const editingMember = ref<{ user_id: string; role: string } | null>(null);
+const selectedUser = ref<AvailableUser | null>(null);
 
 const memberSchema = z.object({
-  user_id: z.string().min(1, "User ID is required"),
-  role: z.enum(["ADMIN", "MEMBER", "VIEWER"]),
-});
-
-const roleForm = z.object({
+  user_id: z.string().min(1, "User is required"),
   role: z.enum(["ADMIN", "MEMBER", "VIEWER"]),
 });
 
@@ -41,6 +52,12 @@ type MemberForm = z.output<typeof memberSchema>;
 const formState = reactive<MemberForm>({
   user_id: "",
   role: "MEMBER",
+});
+
+watch(selectedUser, (user) => {
+  if (user) {
+    formState.user_id = user.id;
+  }
 });
 
 async function save(event: FormSubmitEvent<MemberForm>) {
@@ -54,7 +71,9 @@ async function save(event: FormSubmitEvent<MemberForm>) {
     showForm.value = false;
     formState.user_id = "";
     formState.role = "MEMBER";
+    selectedUser.value = null;
     await refreshMembers();
+    await refreshAvailableUsers();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to add member";
   } finally {
@@ -95,6 +114,7 @@ async function removeMember(userId: string) {
       method: "DELETE",
     });
     await refreshMembers();
+    await refreshAvailableUsers();
   } catch (e: any) {
     error.value = e?.statusMessage ?? e?.message ?? "Failed to remove member";
   }
@@ -157,12 +177,48 @@ onUnmounted(resetHeader);
         class="space-y-4"
         @submit="save"
       >
-        <UFormField label="User ID" name="user_id" required>
-          <UInput
-            v-model="formState.user_id"
+        <UFormField label="User" name="user_id" required>
+          <USelectMenu
+            v-model="selectedUser"
+            :options="availableUsers"
+            placeholder="Select a user"
+            searchable
+            searchable-placeholder="Search users..."
+            value-attribute="id"
+            option-attribute="name"
+            by="id"
             class="w-full"
-            placeholder="Supabase user ID"
-          />
+          >
+            <template #label>
+              <div v-if="selectedUser" class="flex items-center gap-2">
+                <UAvatar
+                  :src="selectedUser.avatar_url ?? undefined"
+                  :alt="selectedUser.name"
+                  size="2xs"
+                />
+                <span>{{ selectedUser.name }}</span>
+              </div>
+              <span v-else class="text-muted">Select a user</span>
+            </template>
+            <template #option="{ option }">
+              <div class="flex items-center gap-2 w-full">
+                <UAvatar
+                  :src="option.avatar_url ?? undefined"
+                  :alt="option.name"
+                  size="2xs"
+                />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate">{{ option.name }}</div>
+                  <div class="text-xs text-muted truncate">{{ option.email }}</div>
+                </div>
+              </div>
+            </template>
+            <template #option-empty="{ query }">
+              <div class="text-sm text-muted text-center py-2">
+                {{ query ? `No users found matching "${query}"` : 'No available users' }}
+              </div>
+            </template>
+          </USelectMenu>
         </UFormField>
         <UFormField label="Role" name="role">
           <USelect
@@ -176,12 +232,12 @@ onUnmounted(resetHeader);
           />
         </UFormField>
         <div class="flex gap-2">
-          <UButton type="submit" label="Add" :loading="saving" />
+          <UButton type="submit" label="Add" :loading="saving" :disabled="!selectedUser" />
           <UButton
             color="neutral"
             variant="outline"
             label="Cancel"
-            @click="showForm = false"
+            @click="showForm = false; selectedUser = null"
           />
         </div>
       </UForm>
@@ -191,7 +247,7 @@ onUnmounted(resetHeader);
       <div
         v-for="member in members"
         :key="member.user_id"
-        class="flex items-center gap-3 px-4 py-3 border-b border-(--ui-border) last:border-b-0"
+        class="flex items-center gap-3 px-4 py-3 border-b border-default last:border-b-0"
       >
         <UAvatar
           :src="member.avatar_url ?? undefined"
@@ -202,7 +258,7 @@ onUnmounted(resetHeader);
           <span class="text-sm font-medium block truncate">{{
             member.name
           }}</span>
-          <span class="text-xs text-(--ui-text-muted) block truncate">{{
+          <span class="text-xs text-muted block truncate">{{
             member.email
           }}</span>
         </div>
@@ -245,7 +301,7 @@ onUnmounted(resetHeader);
       </div>
       <div
         v-if="members.length === 0"
-        class="px-4 py-8 text-center text-sm text-(--ui-text-muted)"
+        class="px-4 py-8 text-center text-sm text-muted"
       >
         No members yet
       </div>

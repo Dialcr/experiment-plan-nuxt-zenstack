@@ -45,9 +45,23 @@ const { data: labels } = await useAsyncData<LabelResponse[]>(
   { default: () => [] },
 );
 
+const { data: sprints } = await useAsyncData<SprintResponse[]>(
+  `sprints-${projectId}`,
+  () => serverFetch(`/api/projects/${projectId}/sprints`),
+  { default: () => [] },
+);
+
+// Available issues to add to sprint (not in any sprint)
+const { data: availableIssues, refresh: refreshAvailableIssues } = await useAsyncData<IssueResponse[]>(
+  `available-issues-${sprintId}`,
+  () => serverFetch(`/api/projects/${projectId}/issues?sprint_id=null`),
+  { default: () => [] },
+);
+
 const selectedIssue = ref<IssueResponse | null>(null);
 const issueDrawerOpen = ref(false);
 const createIssueOpen = ref(false);
+const addExistingIssueOpen = ref(false);
 
 const filters = reactive({
   assignee_id: "",
@@ -102,6 +116,10 @@ const newIssue = reactive({ title: "", description: "", priority: "NONE" });
 const creatingIssue = ref(false);
 const createError = ref("");
 
+const selectedIssueIds = ref<string[]>([]);
+const addingIssues = ref(false);
+const addError = ref("");
+
 const newIssueSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
 });
@@ -132,11 +150,39 @@ async function createIssue() {
     newIssue.priority = "NONE";
     createIssueOpen.value = false;
     await refreshBoard();
+    await refreshSprint();
   } catch (e: any) {
     createError.value =
       e?.statusMessage ?? e?.message ?? "Failed to create issue";
   } finally {
     creatingIssue.value = false;
+  }
+}
+
+async function addExistingIssues() {
+  if (selectedIssueIds.value.length === 0) return;
+  addingIssues.value = true;
+  addError.value = "";
+  try {
+    // Update each selected issue to add it to this sprint
+    await Promise.all(
+      selectedIssueIds.value.map((issueId) =>
+        serverFetch(`/api/projects/${projectId}/issues/${issueId}`, {
+          method: "PATCH",
+          body: { sprint_id: sprintId },
+        }),
+      ),
+    );
+    selectedIssueIds.value = [];
+    addExistingIssueOpen.value = false;
+    await refreshBoard();
+    await refreshSprint();
+    await refreshAvailableIssues();
+  } catch (e: any) {
+    addError.value =
+      e?.statusMessage ?? e?.message ?? "Failed to add issues to sprint";
+  } finally {
+    addingIssues.value = false;
   }
 }
 
@@ -148,6 +194,14 @@ const states = computed(() =>
     group: c.group,
   })),
 );
+
+function toggleIssueSelection(issueId: string) {
+  if (selectedIssueIds.value.includes(issueId)) {
+    selectedIssueIds.value = selectedIssueIds.value.filter((id) => id !== issueId);
+  } else {
+    selectedIssueIds.value.push(issueId);
+  }
+}
 
 watch(
   () => project.value,
@@ -209,11 +263,11 @@ onUnmounted(resetHeader);
 
       <div
         v-if="sprint?.description"
-        class="text-sm text-(--ui-text-muted) mb-4"
+        class="text-sm text-muted mb-4"
       >
         {{ sprint.description }}
       </div>
-      <div class="text-xs text-(--ui-text-muted) mb-4">
+      <div class="text-xs text-muted mb-4">
         <span v-if="sprint?.start_date">{{
           new Date(sprint.start_date).toLocaleDateString()
         }}</span>
@@ -259,11 +313,19 @@ onUnmounted(resetHeader);
             </template>
           </UInput>
         </div>
-        <UButton
-          label="New issue"
-          icon="i-lucide-plus"
-          @click="createIssueOpen = true"
-        />
+        <div class="flex gap-2">
+          <UButton
+            label="Add existing"
+            icon="i-lucide-list-plus"
+            variant="outline"
+            @click="addExistingIssueOpen = true"
+          />
+          <UButton
+            label="New issue"
+            icon="i-lucide-plus"
+            @click="createIssueOpen = true"
+          />
+        </div>
       </div>
 
       <div class="flex gap-4 overflow-x-auto pb-4" style="min-height: 60vh">
@@ -347,12 +409,83 @@ onUnmounted(resetHeader);
         </template>
       </AppSidePanel>
 
+      <AppSidePanel
+        v-model:open="addExistingIssueOpen"
+        title="Add existing issues"
+        description="Select issues to add to this sprint."
+        content-class="w-full sm:max-w-lg"
+        @update:open="
+          (open) => {
+            if (!open) {
+              selectedIssueIds = [];
+              addError = '';
+            }
+          }
+        "
+      >
+        <UAlert
+          v-if="addError"
+          color="error"
+          icon="i-lucide-alert-circle"
+          :description="addError"
+          class="mb-4"
+        />
+        
+        <div v-if="availableIssues.length === 0" class="text-center py-8 text-sm text-muted">
+          No available issues. All issues are already in a sprint.
+        </div>
+        
+        <div v-else class="space-y-2">
+          <div
+            v-for="issue in availableIssues"
+            :key="issue.id"
+            class="flex items-center gap-3 p-3 border border-default rounded-lg hover:bg-elevated cursor-pointer transition-colors"
+            :class="{ 'bg-elevated ring-2 ring-primary': selectedIssueIds.includes(issue.id) }"
+            @click="toggleIssueSelection(issue.id)"
+          >
+            <UCheckbox
+              :model-value="selectedIssueIds.includes(issue.id)"
+              @click.stop="toggleIssueSelection(issue.id)"
+            />
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-sm truncate">{{ issue.title }}</div>
+              <div class="text-xs text-muted">{{ issue.key }}</div>
+            </div>
+            <UBadge
+              v-if="issue.priority !== 'NONE'"
+              size="xs"
+              :label="issue.priority"
+              :color="issue.priority === 'URGENT' ? 'error' : issue.priority === 'HIGH' ? 'warning' : 'info'"
+            />
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-between gap-2">
+            <UButton
+              color="neutral"
+              variant="outline"
+              label="Cancel"
+              @click="addExistingIssueOpen = false"
+            />
+            <UButton
+              label="Add selected"
+              icon="i-lucide-plus"
+              :loading="addingIssues"
+              :disabled="selectedIssueIds.length === 0"
+              @click="addExistingIssues"
+            />
+          </div>
+        </template>
+      </AppSidePanel>
+
       <IssueDrawer
         v-model:open="issueDrawerOpen"
         :issue="selectedIssue"
         :states="states"
         :members="members"
         :labels="labels"
+        :sprints="sprints"
         :project-id="projectId"
         @saved="refreshBoard()"
         @deleted="refreshBoard()"
