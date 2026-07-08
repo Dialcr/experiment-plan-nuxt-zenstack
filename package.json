@@ -2,6 +2,7 @@
   "name": "experiment-plan-nuxt-zenstack",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "build": "nuxt build",
     "dev": "TMPDIR=/tmp nuxt dev",
