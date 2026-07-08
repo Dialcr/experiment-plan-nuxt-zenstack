@@ -1,4 +1,4 @@
-import { deleteIssue } from "../../../../../lib/issue";
+import { deleteIssue } from "../../../../lib/issue";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

@@ -1,4 +1,4 @@
-import { updateMember, updateMemberSchema } from "../../../../../lib/member";
+import { updateMember, updateMemberSchema } from "../../../../lib/member";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

@@ -1,4 +1,7 @@
-import { updateComment, updateCommentSchema } from "../../../../../../../lib/comment";
+import {
+  updateComment,
+  updateCommentSchema,
+} from "../../../../../../lib/comment";
 
 export default defineEventHandler(async (event) => {
   const commentId = getRouterParam(event, "commentId")!;

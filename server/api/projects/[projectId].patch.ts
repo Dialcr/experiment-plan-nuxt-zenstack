@@ -1,8 +1,8 @@
 import { updateProject, updateProjectSchema } from "../../lib/project";
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, "id")!;
+  const projectId = getRouterParam(event, "projectId")!;
   const body = await readBody(event);
   const data = updateProjectSchema.parse(body);
-  return updateProject(event, id, data);
+  return updateProject(event, projectId, data);
 });

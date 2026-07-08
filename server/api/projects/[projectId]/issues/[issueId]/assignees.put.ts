@@ -1,4 +1,7 @@
-import { updateAssignees, updateAssigneesSchema } from "../../../../../lib/issue";
+import {
+  updateAssignees,
+  updateAssigneesSchema,
+} from "../../../../../lib/issue";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

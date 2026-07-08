@@ -1,4 +1,4 @@
-import { deleteSprint } from "../../../../../lib/sprint";
+import { deleteSprint } from "../../../../lib/sprint";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

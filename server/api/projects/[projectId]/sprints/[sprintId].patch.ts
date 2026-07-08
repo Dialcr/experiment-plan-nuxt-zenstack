@@ -1,4 +1,4 @@
-import { updateSprint, updateSprintSchema } from "../../../../../lib/sprint";
+import { updateSprint, updateSprintSchema } from "../../../../lib/sprint";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

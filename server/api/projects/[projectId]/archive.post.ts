@@ -1,11 +1,11 @@
 import { archiveProject, unarchiveProject } from "../../../lib/project";
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, "id")!;
+  const projectId = getRouterParam(event, "projectId")!;
   const body = await readBody(event);
   if (body.archived) {
-    return archiveProject(event, id);
+    return archiveProject(event, projectId);
   } else {
-    return unarchiveProject(event, id);
+    return unarchiveProject(event, projectId);
   }
 });

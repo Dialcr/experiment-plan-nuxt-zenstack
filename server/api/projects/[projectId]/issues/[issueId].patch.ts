@@ -1,4 +1,4 @@
-import { updateIssue, updateIssueSchema } from "../../../../../lib/issue";
+import { updateIssue, updateIssueSchema } from "../../../../lib/issue";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

@@ -9,11 +9,14 @@ const projectId = route.params.projectId as string;
 
 const { setHeader, resetHeader } = useAppHeader();
 
-const { data: project } = await useAsyncData<ProjectResponse>(`project-${projectId}`, () =>
-  serverFetch(`/api/projects/${projectId}`),
+const { data: project } = await useAsyncData<ProjectResponse>(
+  `project-${projectId}`,
+  () => serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: members, refresh: refreshMembers } = await useAsyncData<MemberResponse[]>(
+const { data: members, refresh: refreshMembers } = await useAsyncData<
+  MemberResponse[]
+>(
   `members-${projectId}-page`,
   () => serverFetch(`/api/projects/${projectId}/members`),
   { default: () => [] },
