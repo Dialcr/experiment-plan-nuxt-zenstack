@@ -14,6 +14,8 @@ const { data: project } = await useAsyncData<ProjectResponse>(
   () => serverFetch(`/api/projects/${projectId}`),
 );
 
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+
 const { data: labels, refresh: refreshLabels } = await useAsyncData<
   LabelResponse[]
 >(
@@ -143,6 +145,7 @@ onUnmounted(resetHeader);
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Labels</h3>
       <UButton
+        v-if="isAdmin"
         icon="i-lucide-plus"
         label="New label"
         size="sm"
@@ -206,6 +209,7 @@ onUnmounted(resetHeader);
         />
         <span class="flex-1 text-sm font-medium">{{ label.name }}</span>
         <UButton
+          v-if="isAdmin"
           icon="i-lucide-pencil"
           size="2xs"
           color="neutral"
@@ -213,6 +217,7 @@ onUnmounted(resetHeader);
           @click="openEdit(label)"
         />
         <UButton
+          v-if="isAdmin"
           icon="i-lucide-trash-2"
           size="2xs"
           color="error"

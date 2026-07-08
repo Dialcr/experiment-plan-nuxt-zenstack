@@ -18,6 +18,8 @@ const { data: project } = await useAsyncData<ProjectResponse>(
   () => serverFetch(`/api/projects/${projectId}`),
 );
 
+const isViewer = computed(() => project.value?.my_role === "VIEWER");
+
 const {
   data: sprint,
   error: sprintError,
@@ -315,12 +317,14 @@ onUnmounted(resetHeader);
         </div>
         <div class="flex gap-2">
           <UButton
+            v-if="!isViewer"
             label="Add existing"
             icon="i-lucide-list-plus"
             variant="outline"
             @click="addExistingIssueOpen = true"
           />
           <UButton
+            v-if="!isViewer"
             label="New issue"
             icon="i-lucide-plus"
             @click="createIssueOpen = true"
@@ -333,6 +337,7 @@ onUnmounted(resetHeader);
           v-for="col in filteredColumns"
           :key="col.id"
           :column="col"
+          :disabled="isViewer"
           @issue-click="openIssue"
           @drop="handleDrop"
         />
@@ -500,6 +505,7 @@ onUnmounted(resetHeader);
         :labels="labels"
         :sprints="sprints"
         :project-id="projectId"
+        :my-role="project?.my_role"
         @saved="refreshBoard()"
         @deleted="refreshBoard()"
         @close="selectedIssue = null"

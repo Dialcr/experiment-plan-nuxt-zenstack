@@ -10,7 +10,11 @@ const props = defineProps<{
   labels: Array<{ id: string; name: string; color: string }>;
   sprints: SprintResponse[];
   projectId: string;
+  myRole?: string | null;
 }>();
+
+const isAdmin = computed(() => props.myRole === "ADMIN");
+const isViewer = computed(() => props.myRole === "VIEWER");
 
 const emit = defineEmits<{
   close: [];
@@ -233,11 +237,11 @@ function cancelEditComment() {
 
       <div class="space-y-5">
         <UFormField label="Title">
-          <UInput v-model="editState.title" class="w-full" />
+          <UInput v-model="editState.title" class="w-full" :disabled="isViewer" />
         </UFormField>
 
         <UFormField label="Description">
-          <UTextarea v-model="editState.description" :rows="4" class="w-full" />
+          <UTextarea v-model="editState.description" :rows="4" class="w-full" :disabled="isViewer" />
         </UFormField>
 
         <div class="grid grid-cols-2 gap-4">
@@ -246,6 +250,7 @@ function cancelEditComment() {
               v-model="editState.state_id"
               :items="states.map((s) => ({ label: s.name, value: s.id }))"
               value-attribute="value"
+              :disabled="isViewer"
             />
           </UFormField>
 
@@ -260,6 +265,7 @@ function cancelEditComment() {
                 { label: 'Low', value: 'LOW' },
               ]"
               value-attribute="value"
+              :disabled="isViewer"
             />
           </UFormField>
         </div>
@@ -273,6 +279,7 @@ function cancelEditComment() {
             ]"
             value-attribute="value"
             placeholder="Select sprint"
+            :disabled="isViewer"
           />
         </UFormField>
 
@@ -283,6 +290,7 @@ function cancelEditComment() {
             value-attribute="value"
             multiple
             class="w-full"
+            :disabled="isViewer"
           />
         </UFormField>
 
@@ -296,7 +304,9 @@ function cancelEditComment() {
                 selectedLabelIds.includes(label.id) ? 'solid' : 'outline'
               "
               :label="label.name"
+              :disabled="isViewer"
               @click="
+                isViewer ? undefined :
                 selectedLabelIds.includes(label.id)
                   ? (selectedLabelIds = selectedLabelIds.filter(
                       (id) => id !== label.id,
@@ -384,7 +394,7 @@ function cancelEditComment() {
               <p v-else class="text-sm mt-0.5">{{ comment.body }}</p>
 
               <div
-                v-if="editingCommentId !== comment.id"
+                v-if="editingCommentId !== comment.id && !isViewer"
                 class="flex gap-2 mt-1"
               >
                 <UButton
@@ -408,7 +418,7 @@ function cancelEditComment() {
           </div>
         </div>
 
-        <UForm class="flex gap-2" @submit="postComment">
+        <UForm v-if="!isViewer" class="flex gap-2" @submit="postComment">
           <UInput
             v-model="newComment"
             placeholder="Add a comment..."
@@ -427,7 +437,7 @@ function cancelEditComment() {
     <template #footer>
       <div class="flex gap-2">
         <UButton
-          v-if="issue"
+          v-if="issue && isAdmin"
           color="warning"
           variant="outline"
           icon="i-lucide-archive"
@@ -435,7 +445,7 @@ function cancelEditComment() {
           @click="showArchiveConfirm = true"
         />
         <UButton
-          v-if="issue"
+          v-if="issue && isAdmin"
           color="error"
           variant="outline"
           icon="i-lucide-trash-2"
@@ -447,7 +457,7 @@ function cancelEditComment() {
           color="primary"
           :label="issue ? 'Save changes' : 'Close'"
           :loading="saving"
-          :disabled="saving"
+          :disabled="saving || isViewer"
           class="ml-auto"
           @click="issue ? save() : emit('close')"
         />

@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import type { IssueResponse } from "~~/server/lib/issue";
 
-const props = defineProps<{
-  column: {
-    id: string;
-    name: string;
-    slug: string;
-    color: string;
-    group: string;
-    is_default: boolean;
-    issues: IssueResponse[];
-    issue_count: number;
-  };
-}>();
+const props = withDefaults(
+  defineProps<{
+    column: {
+      id: string;
+      name: string;
+      slug: string;
+      color: string;
+      group: string;
+      is_default: boolean;
+      issues: IssueResponse[];
+      issue_count: number;
+    };
+    disabled?: boolean;
+  }>(),
+  { disabled: false },
+);
 
 const emit = defineEmits<{
   issueClick: [issue: IssueResponse];
@@ -43,9 +47,9 @@ function onDrop(event: DragEvent) {
   <div
     class="kanban-column flex flex-col min-w-72 w-80 bg-(--ui-bg-elevated) rounded-xl border border-(--ui-border) max-h-full"
     :class="{ 'ring-2 ring-(--ui-primary)': dropTarget }"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
+    @dragover="!disabled && onDragOver($event)"
+    @dragleave="!disabled && onDragLeave()"
+    @drop="!disabled && onDrop($event)"
   >
     <div class="flex items-center gap-2 px-3 py-3 border-b border-(--ui-border)">
       <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: column.color }" />
@@ -60,6 +64,7 @@ function onDrop(event: DragEvent) {
         v-for="issue in column.issues"
         :key="issue.id"
         :issue="issue"
+        :disabled="disabled"
         @click="emit('issueClick', $event)"
       />
     </div>

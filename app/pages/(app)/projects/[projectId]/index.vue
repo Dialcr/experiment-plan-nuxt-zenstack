@@ -19,6 +19,9 @@ const {
   serverFetch(`/api/projects/${projectId}`),
 );
 
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+const isViewer = computed(() => project.value?.my_role === "VIEWER");
+
 const { data: board, refresh: refreshBoard } =
   await useAsyncData<BoardResponse>(
     `board-${projectId}`,
@@ -246,6 +249,7 @@ onUnmounted(resetHeader);
           </UInput>
         </div>
         <UButton
+          v-if="!isViewer"
           label="New issue"
           icon="i-lucide-plus"
           @click="createIssueOpen = true"
@@ -269,6 +273,7 @@ onUnmounted(resetHeader);
           v-for="col in filteredColumns"
           :key="col.id"
           :column="col"
+          :disabled="isViewer"
           @issue-click="openIssue"
           @drop="handleDrop"
         />
@@ -352,6 +357,7 @@ onUnmounted(resetHeader);
         :members="members"
         :labels="labels"
         :project-id="projectId"
+        :my-role="project?.my_role"
         @saved="refreshBoard()"
         @deleted="refreshBoard()"
         @close="selectedIssue = null"

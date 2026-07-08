@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { H3Event } from "h3";
-import { getUserDb } from "./zenstack";
+import { createError } from "h3";
+import { getUserDb, rawDb } from "./zenstack";
 import { handleOrmError } from "./error";
 import type { ProjectMember } from "../../zenstack/models";
 
@@ -104,6 +105,22 @@ export async function updateMember(
 ): Promise<MemberResponse> {
   try {
     const db = await getUserDb(event);
+
+    const project = await rawDb.project.findUnique({
+      where: { id: projectId },
+      select: { created_by_id: true },
+    });
+    if (!project) {
+      throw createError({ statusCode: 404, statusMessage: "Project not found" });
+    }
+
+    if (userId === project.created_by_id && data.role !== undefined) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Cannot change the project owner's role",
+      });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (data.role !== undefined) updateData.role = data.role;
     if (data.is_active !== undefined) updateData.is_active = data.is_active;
@@ -129,6 +146,22 @@ export async function removeMember(
 ): Promise<void> {
   try {
     const db = await getUserDb(event);
+
+    const project = await rawDb.project.findUnique({
+      where: { id: projectId },
+      select: { created_by_id: true },
+    });
+    if (!project) {
+      throw createError({ statusCode: 404, statusMessage: "Project not found" });
+    }
+
+    if (userId === project.created_by_id) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Cannot remove the project owner",
+      });
+    }
+
     await db.projectMember.delete({
       where: { project_id_user_id: { project_id: projectId, user_id: userId } },
     });

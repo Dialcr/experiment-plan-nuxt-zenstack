@@ -14,6 +14,8 @@ const { data: project } = await useAsyncData<ProjectResponse>(
   () => serverFetch(`/api/projects/${projectId}`),
 );
 
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+
 const { data: sprints, refresh: refreshSprints } = await useAsyncData<
   SprintResponse[]
 >(
@@ -186,6 +188,7 @@ onUnmounted(resetHeader);
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Sprints</h3>
       <UButton
+        v-if="isAdmin"
         icon="i-lucide-plus"
         label="New sprint"
         size="sm"
@@ -302,6 +305,7 @@ onUnmounted(resetHeader);
                 </div>
               </div>
               <UDropdownMenu
+                v-if="isAdmin"
                 :items="
                   [
                     sprint.status === 'PLANNED'

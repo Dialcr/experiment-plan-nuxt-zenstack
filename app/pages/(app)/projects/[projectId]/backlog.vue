@@ -226,6 +226,7 @@ onUnmounted(resetHeader);
         </UInput>
       </div>
       <UButton
+        v-if="project?.my_role !== 'VIEWER'"
         label="New issue"
         icon="i-lucide-plus"
         @click="createIssueOpen = true"
@@ -300,6 +301,7 @@ onUnmounted(resetHeader);
       :labels="labels"
       :sprints="sprints"
       :project-id="projectId"
+      :my-role="project?.my_role"
       @saved="refreshIssues()"
       @deleted="refreshIssues()"
       @close="selectedIssue = null"

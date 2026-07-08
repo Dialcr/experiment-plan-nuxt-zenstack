@@ -8,7 +8,9 @@
     "dev": "TMPDIR=/tmp nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.115",
@@ -29,6 +31,7 @@
     "@nuxtjs/supabase": "^2.0.9",
     "@types/pg": "^8.20.0",
     "@zenstackhq/cli": "^3.8.2",
-    "tailwindcss": "^4.3.2"
+    "tailwindcss": "^4.3.2",
+    "vitest": "^4.1.10"
   }
 }
