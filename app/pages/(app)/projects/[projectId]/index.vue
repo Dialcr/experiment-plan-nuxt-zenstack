@@ -9,7 +9,7 @@ import type { LabelResponse } from "~~/server/lib/label";
 const route = useRoute();
 const projectId = route.params.projectId as string;
 
-const { setHeader, setPrimaryAction, resetHeader } = useAppHeader();
+const { setHeader, resetHeader } = useAppHeader();
 
 const {
   data: project,
@@ -19,11 +19,12 @@ const {
   serverFetch(`/api/projects/${projectId}`),
 );
 
-const { data: board, refresh: refreshBoard } = await useAsyncData<BoardResponse>(
-  `board-${projectId}`,
-  () => serverFetch(`/api/projects/${projectId}/board`),
-  { default: () => ({ columns: [] }) },
-);
+const { data: board, refresh: refreshBoard } =
+  await useAsyncData<BoardResponse>(
+    `board-${projectId}`,
+    () => serverFetch(`/api/projects/${projectId}/board`),
+    { default: () => ({ columns: [] }) },
+  );
 
 const { data: members } = await useAsyncData<MemberResponse[]>(
   `members-${projectId}`,
@@ -60,7 +61,12 @@ const filteredColumns = computed(() => {
         !issue.assignees.some((a) => a.id === filters.assignee_id)
       )
         return false;
-      if (filters.priority && filters.priority !== "ALL" && issue.priority !== filters.priority) return false;
+      if (
+        filters.priority &&
+        filters.priority !== "ALL" &&
+        issue.priority !== filters.priority
+      )
+        return false;
       if (
         filters.search &&
         !issue.title.toLowerCase().includes(filters.search.toLowerCase())
@@ -159,10 +165,6 @@ watch(
   { immediate: true },
 );
 
-setPrimaryAction({ label: "New issue", icon: "i-lucide-plus" }, () => {
-  createIssueOpen.value = true;
-});
-
 onUnmounted(resetHeader);
 </script>
 
@@ -189,46 +191,53 @@ onUnmounted(resetHeader);
         :project-name="project?.name ?? 'Loading...'"
       />
 
-      <div class="flex items-center gap-3 mb-4 flex-wrap">
-        <USelect
-          v-model="filters.state_id"
-          :items="allStates.map((s) => ({ label: s.name, value: s.id }))"
-          value-attribute="value"
-          placeholder="Filter by state"
-          class="w-40"
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <USelect
+            v-model="filters.state_id"
+            :items="allStates.map((s) => ({ label: s.name, value: s.id }))"
+            value-attribute="value"
+            placeholder="Filter by state"
+            class="w-40"
+          />
+          <USelect
+            v-model="filters.priority"
+            :items="[
+              { label: 'All priorities', value: 'ALL' },
+              { label: 'Urgent', value: 'URGENT' },
+              { label: 'High', value: 'HIGH' },
+              { label: 'Medium', value: 'MEDIUM' },
+              { label: 'Low', value: 'LOW' },
+              { label: 'No priority', value: 'NONE' },
+            ]"
+            value-attribute="value"
+            class="w-40"
+          />
+          <USelect
+            v-model="filters.assignee_id"
+            :items="[
+              { label: 'All assignees', value: 'ALL' },
+              ...members.map((m) => ({ label: m.name, value: m.user_id })),
+            ]"
+            value-attribute="value"
+            class="w-44"
+          />
+          <UInput
+            v-model="filters.search"
+            placeholder="Search issues..."
+            class="w-52"
+            leading
+          >
+            <template #leading>
+              <UIcon name="i-lucide-search" class="size-4" />
+            </template>
+          </UInput>
+        </div>
+        <UButton
+          label="New issue"
+          icon="i-lucide-plus"
+          @click="createIssueOpen = true"
         />
-        <USelect
-          v-model="filters.priority"
-          :items="[
-            { label: 'All priorities', value: 'ALL' },
-            { label: 'Urgent', value: 'URGENT' },
-            { label: 'High', value: 'HIGH' },
-            { label: 'Medium', value: 'MEDIUM' },
-            { label: 'Low', value: 'LOW' },
-            { label: 'No priority', value: 'NONE' },
-          ]"
-          value-attribute="value"
-          class="w-40"
-        />
-        <USelect
-          v-model="filters.assignee_id"
-          :items="[
-            { label: 'All assignees', value: 'ALL' },
-            ...members.map((m) => ({ label: m.name, value: m.user_id })),
-          ]"
-          value-attribute="value"
-          class="w-44"
-        />
-        <UInput
-          v-model="filters.search"
-          placeholder="Search issues..."
-          class="w-52"
-          leading
-        >
-          <template #leading>
-            <UIcon name="i-lucide-search" class="size-4" />
-          </template>
-        </UInput>
       </div>
 
       <UEmpty
@@ -256,7 +265,18 @@ onUnmounted(resetHeader);
       <AppSidePanel
         v-model:open="createIssueOpen"
         title="New issue"
+        description="Create a new issue for this project."
         content-class="w-full sm:max-w-md"
+        @update:open="
+          (open) => {
+            if (!open) {
+              newIssue.title = '';
+              newIssue.description = '';
+              newIssue.priority = 'NONE';
+              createError = '';
+            }
+          }
+        "
       >
         <UAlert
           v-if="createError"
@@ -265,13 +285,8 @@ onUnmounted(resetHeader);
           :description="createError"
           class="mb-4"
         />
-        <UForm
-          :schema="newIssueSchema"
-          :state="newIssue"
-          class="space-y-4"
-          @submit="createIssue"
-        >
-          <UFormField label="Title" name="title" required>
+        <div class="space-y-4">
+          <UFormField label="Title" required>
             <UInput
               v-model="newIssue.title"
               placeholder="Issue title"
@@ -279,10 +294,10 @@ onUnmounted(resetHeader);
               autofocus
             />
           </UFormField>
-          <UFormField label="Description" name="description">
+          <UFormField label="Description">
             <UTextarea
               v-model="newIssue.description"
-              :rows="3"
+              :rows="4"
               class="w-full"
             />
           </UFormField>
@@ -299,7 +314,7 @@ onUnmounted(resetHeader);
               value-attribute="value"
             />
           </UFormField>
-        </UForm>
+        </div>
         <template #footer>
           <div class="flex justify-between gap-2">
             <UButton
@@ -309,11 +324,10 @@ onUnmounted(resetHeader);
               @click="createIssueOpen = false"
             />
             <UButton
-              type="submit"
-              form="new-issue-form"
               label="Create"
               icon="i-lucide-plus"
               :loading="creatingIssue"
+              @click="createIssue"
             />
           </div>
         </template>

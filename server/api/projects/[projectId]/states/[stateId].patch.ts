@@ -1,4 +1,4 @@
-import { updateState, updateStateSchema } from "../../../../../lib/state";
+import { updateState, updateStateSchema } from "../../../../lib/state";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

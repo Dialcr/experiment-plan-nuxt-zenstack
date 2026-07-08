@@ -1,4 +1,4 @@
-import { deleteLabel } from "../../../../../lib/label";
+import { deleteLabel } from "../../../../lib/label";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

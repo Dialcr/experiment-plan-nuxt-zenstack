@@ -1,4 +1,4 @@
-import { deleteState } from "../../../../../lib/state";
+import { deleteState } from "../../../../lib/state";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

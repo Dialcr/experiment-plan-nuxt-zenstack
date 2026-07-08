@@ -1,4 +1,7 @@
-import { createComment, createCommentSchema } from "../../../../../../lib/comment";
+import {
+  createComment,
+  createCommentSchema,
+} from "../../../../../../lib/comment";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;

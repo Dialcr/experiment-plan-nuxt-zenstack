@@ -1,4 +1,4 @@
-import { getSprint } from "../../../../../lib/sprint";
+import { getSprint } from "../../../../lib/sprint";
 
 export default defineEventHandler((event) => {
   const projectId = getRouterParam(event, "projectId")!;

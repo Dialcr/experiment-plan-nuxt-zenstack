@@ -1,4 +1,4 @@
-import { updateLabel, updateLabelSchema } from "../../../../../lib/label";
+import { updateLabel, updateLabelSchema } from "../../../../lib/label";
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, "projectId")!;
