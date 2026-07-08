@@ -33,11 +33,9 @@ ENV SUPABASE_PUBLIC_KEY=$SUPABASE_PUBLIC_KEY
 
 RUN pnpm zen generate
 
-RUN echo "DATABASE_URL=$DATABASE_URL" && \
-    echo "SUPABASE_URL=$SUPABASE_URL" && \
-    echo "SUPABASE_PUBLIC_KEY=$SUPABASE_PUBLIC_KEY"
-    
 RUN pnpm build
+
+RUN pnpm zen migrate deploy
 
 FROM node:22-alpine AS runner
 
