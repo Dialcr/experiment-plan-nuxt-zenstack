@@ -21,6 +21,14 @@ const { data: project } = await useAsyncData<ProjectResponse>(
   () => serverFetch(`/api/projects/${projectId}`),
 );
 
+const { data: currentUser } = await useFetch("/api/me", {
+  headers: useRequestHeaders(["cookie"]),
+});
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+const isOwner = computed(
+  () => currentUser.value?.id === project.value?.created_by_id,
+);
+
 const { data: members, refresh: refreshMembers } = await useAsyncData<
   MemberResponse[]
 >(
@@ -179,6 +187,7 @@ onUnmounted(resetHeader);
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Members</h3>
       <UButton
+        v-if="isAdmin"
         icon="i-lucide-user-plus"
         label="Add member"
         size="sm"
@@ -266,6 +275,7 @@ onUnmounted(resetHeader);
           Inactive
         </UBadge>
         <USelect
+          v-if="isAdmin"
           :model-value="member.role"
           :items="[
             { label: 'Admin', value: 'ADMIN' },
@@ -276,7 +286,17 @@ onUnmounted(resetHeader);
           class="w-28"
           @update:model-value="(v: string) => updateRole(member.user_id, v)"
         />
+        <UBadge
+          v-else
+          size="xs"
+          color="neutral"
+          variant="subtle"
+          class="shrink-0"
+        >
+          {{ member.role }}
+        </UBadge>
         <UButton
+          v-if="isAdmin && member.user_id !== project?.created_by_id"
           :icon="member.is_active ? 'i-lucide-user-x' : 'i-lucide-user-check'"
           size="2xs"
           :color="member.is_active ? 'warning' : 'success'"
@@ -285,6 +305,7 @@ onUnmounted(resetHeader);
           @click="toggleActive(member.user_id, member.is_active)"
         />
         <UButton
+          v-if="isAdmin && member.user_id !== project?.created_by_id"
           icon="i-lucide-user-minus"
           size="2xs"
           color="error"

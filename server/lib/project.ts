@@ -75,9 +75,11 @@ export type ProjectResponse = {
   archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  created_by_id: string;
+  my_role: string | null;
 };
 
-function toResponse(project: Project): ProjectResponse {
+function toResponse(project: Project & { my_role?: string | null }): ProjectResponse {
   return {
     id: project.id,
     name: project.name,
@@ -86,6 +88,8 @@ function toResponse(project: Project): ProjectResponse {
     archived_at: project.archived_at ?? null,
     created_at: project.created_at,
     updated_at: project.updated_at,
+    created_by_id: project.created_by_id,
+    my_role: project.my_role ?? null,
   };
 }
 
@@ -118,12 +122,22 @@ function handleOrmError(error: unknown, fallbackMessage: string): never {
 
 export async function listProjects(event: H3Event): Promise<ProjectResponse[]> {
   try {
+    const user = await getCurrentUser(event);
     const db = await getUserDb(event);
-    const projects = await db.project.findMany({
-      where: { archived_at: null },
-      orderBy: { created_at: "desc" },
+
+    const myMemberships = await db.projectMember.findMany({
+      where: { user_id: user.id, is_active: true },
+      select: { project_id: true, role: true },
     });
-    return projects.map(toResponse);
+    const roleMap = new Map(myMemberships.map((m) => [m.project_id, m.role]));
+
+    const projects = await db.project.findMany({
+      orderBy: [{ archived_at: { sort: "asc", nulls: "first" } }, { created_at: "desc" }],
+    });
+
+    return projects.map((p) =>
+      toResponse({ ...p, my_role: roleMap.get(p.id) ?? null }),
+    );
   } catch (error) {
     return handleOrmError(error, "Failed to list projects");
   }
@@ -134,11 +148,20 @@ export async function getProject(
   projectId: string,
 ): Promise<ProjectResponse> {
   try {
+    const user = await getCurrentUser(event);
     const db = await getUserDb(event);
+
     const project = await db.project.findUniqueOrThrow({
       where: { id: projectId },
     });
-    return toResponse(project);
+    const member = await db.projectMember.findUnique({
+      where: {
+        project_id_user_id: { project_id: projectId, user_id: user.id },
+      },
+      select: { role: true },
+    });
+
+    return toResponse({ ...project, my_role: member?.role ?? null });
   } catch (error) {
     return handleOrmError(error, "Failed to get project");
   }
@@ -190,7 +213,7 @@ export async function createProject(
       where: { id: project.id },
     });
 
-    return toResponse(created);
+    return toResponse({ ...created, my_role: "ADMIN" });
   } catch (error) {
     return handleOrmError(error, "Failed to create project");
   }

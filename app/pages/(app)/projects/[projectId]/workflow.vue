@@ -14,6 +14,8 @@ const { data: project } = await useAsyncData<ProjectResponse>(
   () => serverFetch(`/api/projects/${projectId}`),
 );
 
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+
 const { data: states, refresh: refreshStates } = await useAsyncData<
   StateResponse[]
 >(
@@ -208,6 +210,7 @@ onUnmounted(resetHeader);
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Workflow states</h3>
       <UButton
+        v-if="isAdmin"
         icon="i-lucide-plus"
         label="New state"
         size="sm"
@@ -283,7 +286,7 @@ onUnmounted(resetHeader);
         :key="state.id"
         class="flex items-center gap-3 px-4 py-3 border-b border-(--ui-border) last:border-b-0"
       >
-        <div class="flex flex-col gap-0.5">
+        <div v-if="isAdmin" class="flex flex-col gap-0.5">
           <UButton
             icon="i-lucide-chevron-up"
             size="2xs"
@@ -323,7 +326,7 @@ onUnmounted(resetHeader);
           >{{ state.issue_count ?? 0 }} issues</span
         >
         <UButton
-          v-if="!state.is_default"
+          v-if="!state.is_default && isAdmin"
           size="2xs"
           color="neutral"
           variant="ghost"
@@ -332,6 +335,7 @@ onUnmounted(resetHeader);
           @click="setDefault(state.id)"
         />
         <UButton
+          v-if="isAdmin"
           icon="i-lucide-pencil"
           size="2xs"
           color="neutral"
@@ -339,6 +343,7 @@ onUnmounted(resetHeader);
           @click="openEdit(state)"
         />
         <UButton
+          v-if="isAdmin"
           icon="i-lucide-trash-2"
           size="2xs"
           color="error"

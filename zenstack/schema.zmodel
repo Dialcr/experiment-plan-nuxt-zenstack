@@ -137,7 +137,8 @@ model State with GeneratedId, Timestamps {
 
     @@deny('delete', is_default)
     @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
-    @@allow('create,update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER])
+    @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
 
     @@unique([project_id, name])
     @@unique([project_id, slug])
@@ -179,7 +180,7 @@ model Issue with GeneratedId, Timestamps {
     labels     IssueLabel[]
     comments   Comment[]
 
-    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER])
     @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
     @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
 
@@ -208,7 +209,7 @@ model Sprint with GeneratedId, Timestamps {
 
     issues Issue[]
 
-    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER])
     @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
     @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
 
@@ -227,7 +228,7 @@ model Label with GeneratedId, Timestamps {
 
     issues IssueLabel[]
 
-    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER])
     @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
     @@allow('update,delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role == ADMIN])
 
@@ -246,10 +247,10 @@ model Comment with GeneratedId, Timestamps {
     author_id  String
     body       String
 
-    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
+    @@allow('create', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER])
     @@allow('read', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active])
-    @@allow('update', auth() != null && auth().is_active && author_id == auth().id)
-    @@allow('delete', auth() != null && auth().is_active && (author_id == auth().id || project.members?[user_id == auth().id && is_active && role == ADMIN]))
+    @@allow('update', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER] && author_id == auth().id)
+    @@allow('delete', auth() != null && auth().is_active && project.members?[user_id == auth().id && is_active && role != VIEWER] && (author_id == auth().id || project.members?[user_id == auth().id && is_active && role == ADMIN]))
 }
 
 /// Join table: Issue <-> User (many-to-many).
@@ -261,7 +262,8 @@ model IssueAssignee {
     user     User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
     user_id  String
 
-    @@allow('all', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+    @@allow('create,update,delete', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active && role != VIEWER])
 
     @@id([issue_id, user_id])
 }
@@ -275,7 +277,8 @@ model IssueLabel {
     label    Label @relation(fields: [label_id], references: [id], onDelete: Cascade)
     label_id String
 
-    @@allow('all', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+    @@allow('read', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active])
+    @@allow('create,update,delete', auth() != null && auth().is_active && issue.project.members?[user_id == auth().id && is_active && role != VIEWER])
 
     @@id([issue_id, label_id])
 }

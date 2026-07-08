@@ -227,12 +227,23 @@ onUnmounted(resetHeader);
           :title="project.name"
           :description="project.description ?? 'No description yet.'"
           :to="`/projects/${project.id}`"
+          :ui="project.archived_at ? { root: 'opacity-70' } : undefined"
           @click="goToProject(project.id)"
         >
           <template #footer>
-            <UBadge color="neutral" variant="subtle">
-              {{ project.identifier }}
-            </UBadge>
+            <div class="flex items-center gap-2 flex-wrap">
+              <UBadge color="neutral" variant="subtle">
+                {{ project.identifier }}
+              </UBadge>
+              <UBadge
+                v-if="project.archived_at"
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >
+                Archived
+              </UBadge>
+            </div>
           </template>
         </UPageCard>
       </div>

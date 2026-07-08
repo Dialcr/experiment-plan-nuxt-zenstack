@@ -579,6 +579,7 @@ export async function updateAssignees(
   data: UpdateAssigneesInput,
 ): Promise<IssueResponse> {
   try {
+    const user = await getCurrentUser(event);
     const db = await getUserDb(event);
 
     const project = await db.project.findUnique({
@@ -590,6 +591,19 @@ export async function updateAssignees(
         statusCode: 404,
         statusMessage: "Project not found",
       });
+
+    const membership = await db.projectMember.findUnique({
+      where: {
+        project_id_user_id: { project_id: projectId, user_id: user.id },
+      },
+      select: { role: true },
+    });
+    if (!membership || membership.role === "VIEWER") {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Access denied",
+      });
+    }
 
     if (data.user_ids.length > 0) {
       const count = await db.projectMember.count({

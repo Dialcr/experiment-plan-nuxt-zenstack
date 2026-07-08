@@ -13,6 +13,9 @@ const { data: project, refresh: refreshProject } =
     serverFetch(`/api/projects/${projectId}`),
   );
 
+const isAdmin = computed(() => project.value?.my_role === "ADMIN");
+const isViewer = computed(() => project.value?.my_role === "VIEWER");
+
 const saving = ref(false);
 const deleting = ref(false);
 const archiving = ref(false);
@@ -138,11 +141,11 @@ onUnmounted(resetHeader);
         @submit="save"
       >
         <UFormField label="Project name" name="name" required>
-          <UInput v-model="formState.name" class="w-full" />
+          <UInput v-model="formState.name" class="w-full" :disabled="!isAdmin" />
         </UFormField>
 
         <UFormField label="Description" name="description">
-          <UTextarea v-model="formState.description" :rows="3" class="w-full" />
+          <UTextarea v-model="formState.description" :rows="3" class="w-full" :disabled="!isAdmin" />
         </UFormField>
 
         <div class="flex items-center gap-2 text-xs text-(--ui-text-muted)">
@@ -158,6 +161,7 @@ onUnmounted(resetHeader);
         </div>
 
         <UButton
+          v-if="isAdmin"
           type="submit"
           label="Save changes"
           icon="i-lucide-save"
@@ -167,7 +171,7 @@ onUnmounted(resetHeader);
       </UForm>
     </UCard>
 
-    <UCard class="mt-6">
+    <UCard v-if="isAdmin" class="mt-6">
       <template #header>
         <h3 class="text-lg font-semibold">Archive project</h3>
       </template>
@@ -175,7 +179,7 @@ onUnmounted(resetHeader);
         {{
           project?.archived_at
             ? "This project is archived. Unarchive it to make it active again."
-            : "Archiving a project hides it from the project list. Its data is preserved."
+            : "Archiving a project marks it as archived. It remains visible but is clearly identified as archived. All data is preserved."
         }}
       </p>
       <UButton
@@ -190,7 +194,7 @@ onUnmounted(resetHeader);
       />
     </UCard>
 
-    <UCard class="mt-6">
+    <UCard v-if="isAdmin" class="mt-6">
       <template #header>
         <h3 class="text-lg font-semibold text-red-500">Danger zone</h3>
       </template>
@@ -214,8 +218,8 @@ onUnmounted(resetHeader);
       :title="project?.archived_at ? 'Unarchive project?' : 'Archive project?'"
       :description="
         project?.archived_at
-          ? 'This will make the project visible in the project list again.'
-          : 'The project will be hidden from the project list. All data is preserved.'
+          ? 'This will make the project active again.'
+          : 'The project will be archived. It remains visible but marked as archived. All data is preserved.'
       "
       :confirm-label="project?.archived_at ? 'Unarchive' : 'Archive'"
       :loading="archiving"

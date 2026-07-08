@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import type { IssueResponse } from "~~/server/lib/issue";
 
-const props = defineProps<{
-  issue: IssueResponse;
-}>();
+const props = withDefaults(
+  defineProps<{
+    issue: IssueResponse;
+    disabled?: boolean;
+  }>(),
+  { disabled: false },
+);
 
 const emit = defineEmits<{
   click: [issue: IssueResponse];
@@ -40,8 +44,8 @@ function priorityIcon(priority: string) {
   <UCard
     class="issue-card cursor-pointer hover:shadow-md transition-shadow"
     :ui="{ body: 'p-3 space-y-2', root: 'rounded-lg' }"
-    draggable="true"
-    @dragstart="onDragStart"
+    :draggable="!disabled"
+    @dragstart="!disabled && onDragStart($event)"
     @click="emit('click', issue)"
   >
     <div class="flex items-start justify-between gap-2">
