@@ -29,13 +29,28 @@ const { data: members, refresh: refreshMembers } = await useAsyncData<
   { default: () => [] },
 );
 
-const { data: availableUsers, refresh: refreshAvailableUsers } = await useAsyncData<
-  AvailableUser[]
->(
-  `available-users-${projectId}`,
-  () => serverFetch(`/api/projects/${projectId}/available-users`),
-  { default: () => [] },
-);
+const { data: availableUsers, refresh: refreshAvailableUsers } =
+  await useAsyncData<AvailableUser[]>(
+    `available-users-${projectId}`,
+    () => serverFetch(`/api/projects/${projectId}/available-users`),
+    { default: () => [] },
+  );
+
+// Debug: verificar qué datos llegan
+watchEffect(() => {
+  console.log("Available users:", availableUsers.value);
+});
+
+// Computed para asegurar reactividad correcta
+const userOptions = computed(() => {
+  const users = availableUsers.value || [];
+  console.log("userOptions computed:", users.length, "users");
+  return users.map((u) => ({
+    value: u.id,
+    label: u.name,
+    ...u,
+  }));
+});
 
 const saving = ref(false);
 const error = ref("");
@@ -56,7 +71,8 @@ const formState = reactive<MemberForm>({
 
 watch(selectedUser, (user) => {
   if (user) {
-    formState.user_id = user.id;
+    formState.user_id = user.value || user.id;
+    console.log("Selected user ID:", formState.user_id);
   }
 });
 
@@ -180,43 +196,13 @@ onUnmounted(resetHeader);
         <UFormField label="User" name="user_id" required>
           <USelectMenu
             v-model="selectedUser"
-            :options="availableUsers"
+            :items="userOptions"
             placeholder="Select a user"
-            searchable
-            searchable-placeholder="Search users..."
-            value-attribute="id"
-            option-attribute="name"
-            by="id"
+            :search-input="{ placeholder: 'Search users...' }"
             class="w-full"
           >
-            <template #label>
-              <div v-if="selectedUser" class="flex items-center gap-2">
-                <UAvatar
-                  :src="selectedUser.avatar_url ?? undefined"
-                  :alt="selectedUser.name"
-                  size="2xs"
-                />
-                <span>{{ selectedUser.name }}</span>
-              </div>
-              <span v-else class="text-muted">Select a user</span>
-            </template>
-            <template #option="{ option }">
-              <div class="flex items-center gap-2 w-full">
-                <UAvatar
-                  :src="option.avatar_url ?? undefined"
-                  :alt="option.name"
-                  size="2xs"
-                />
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium truncate">{{ option.name }}</div>
-                  <div class="text-xs text-muted truncate">{{ option.email }}</div>
-                </div>
-              </div>
-            </template>
-            <template #option-empty="{ query }">
-              <div class="text-sm text-muted text-center py-2">
-                {{ query ? `No users found matching "${query}"` : 'No available users' }}
-              </div>
+            <template #default="{ modelValue }">
+              {{ modelValue?.name || "Select a user" }}
             </template>
           </USelectMenu>
         </UFormField>
@@ -232,12 +218,20 @@ onUnmounted(resetHeader);
           />
         </UFormField>
         <div class="flex gap-2">
-          <UButton type="submit" label="Add" :loading="saving" :disabled="!selectedUser" />
+          <UButton
+            type="submit"
+            label="Add"
+            :loading="saving"
+            :disabled="!selectedUser"
+          />
           <UButton
             color="neutral"
             variant="outline"
             label="Cancel"
-            @click="showForm = false; selectedUser = null"
+            @click="
+              showForm = false;
+              selectedUser = null;
+            "
           />
         </div>
       </UForm>

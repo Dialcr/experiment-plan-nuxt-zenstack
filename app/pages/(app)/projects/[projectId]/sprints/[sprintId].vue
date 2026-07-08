@@ -52,11 +52,12 @@ const { data: sprints } = await useAsyncData<SprintResponse[]>(
 );
 
 // Available issues to add to sprint (not in any sprint)
-const { data: availableIssues, refresh: refreshAvailableIssues } = await useAsyncData<IssueResponse[]>(
-  `available-issues-${sprintId}`,
-  () => serverFetch(`/api/projects/${projectId}/issues?sprint_id=null`),
-  { default: () => [] },
-);
+const { data: availableIssues, refresh: refreshAvailableIssues } =
+  await useAsyncData<IssueResponse[]>(
+    `available-issues-${sprintId}`,
+    () => serverFetch(`/api/projects/${projectId}/issues?sprint_id=null`),
+    { default: () => [] },
+  );
 
 const selectedIssue = ref<IssueResponse | null>(null);
 const issueDrawerOpen = ref(false);
@@ -197,7 +198,9 @@ const states = computed(() =>
 
 function toggleIssueSelection(issueId: string) {
   if (selectedIssueIds.value.includes(issueId)) {
-    selectedIssueIds.value = selectedIssueIds.value.filter((id) => id !== issueId);
+    selectedIssueIds.value = selectedIssueIds.value.filter(
+      (id) => id !== issueId,
+    );
   } else {
     selectedIssueIds.value.push(issueId);
   }
@@ -261,10 +264,7 @@ onUnmounted(resetHeader);
         </div>
       </div>
 
-      <div
-        v-if="sprint?.description"
-        class="text-sm text-muted mb-4"
-      >
+      <div v-if="sprint?.description" class="text-sm text-muted mb-4">
         {{ sprint.description }}
       </div>
       <div class="text-xs text-muted mb-4">
@@ -430,17 +430,24 @@ onUnmounted(resetHeader);
           :description="addError"
           class="mb-4"
         />
-        
-        <div v-if="availableIssues.length === 0" class="text-center py-8 text-sm text-muted">
+
+        <div
+          v-if="availableIssues.length === 0"
+          class="text-center py-8 text-sm text-muted"
+        >
           No available issues. All issues are already in a sprint.
         </div>
-        
+
         <div v-else class="space-y-2">
           <div
             v-for="issue in availableIssues"
             :key="issue.id"
             class="flex items-center gap-3 p-3 border border-default rounded-lg hover:bg-elevated cursor-pointer transition-colors"
-            :class="{ 'bg-elevated ring-2 ring-primary': selectedIssueIds.includes(issue.id) }"
+            :class="{
+              'bg-elevated ring-2 ring-primary': selectedIssueIds.includes(
+                issue.id,
+              ),
+            }"
             @click="toggleIssueSelection(issue.id)"
           >
             <UCheckbox
@@ -455,7 +462,13 @@ onUnmounted(resetHeader);
               v-if="issue.priority !== 'NONE'"
               size="xs"
               :label="issue.priority"
-              :color="issue.priority === 'URGENT' ? 'error' : issue.priority === 'HIGH' ? 'warning' : 'info'"
+              :color="
+                issue.priority === 'URGENT'
+                  ? 'error'
+                  : issue.priority === 'HIGH'
+                    ? 'warning'
+                    : 'info'
+              "
             />
           </div>
         </div>

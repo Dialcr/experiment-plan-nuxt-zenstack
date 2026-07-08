@@ -14,6 +14,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
     // Use rawDb to bypass policies and get all active users
     const db = rawDb;
+
     // Get all active users
     const allUsers = await db.user.findMany({
       where: {
