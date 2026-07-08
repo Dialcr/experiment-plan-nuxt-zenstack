@@ -55,6 +55,8 @@ Build-time arguments:
 
 > `DATABASE_URL` is used at build time for Nuxt config validation but does **not** persist to the final runner image — only `.output/` is copied to production.
 
+> For Supabase pooler (port 6543), use: `?sslmode=require` at the end of `DATABASE_URL`.
+
 Runtime environment variables (secrets):
 
 | ENV                   | Required | Purpose                      |

@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM node:22-alpine AS build
 
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat ca-certificates
 
 RUN corepack enable
 
