@@ -3,6 +3,11 @@ import "./env";
 
 export default defineNuxtConfig({
   modules: ["@nuxt/ui", "@nuxtjs/supabase"],
+  runtimeConfig: {
+    public: {
+      siteUrl: '',
+    },
+  },
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_PUBLIC_KEY,
